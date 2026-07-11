@@ -14,6 +14,7 @@ import {
 import BankSelect from "../components/BankSelect/BankSelect";
 import Modal from "../components/Modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import AlertModal from "../components/AlertModal/AlertModal";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
@@ -22,6 +23,13 @@ import { db } from "../database/database";
 import type { Account } from "../types/Account";
 import type { Transaction } from "../types/Transaction";
 import type { Bank } from "../data/banks";
+import type { AlertType } from "../components/AlertModal/AlertModal";
+
+type AlertData = {
+  title: string;
+  message: string;
+  type: AlertType;
+};
 
 function getLocalDate() {
   const today = new Date();
@@ -51,15 +59,23 @@ function formatCurrency(value: number) {
 
 export default function Accounts() {
   const accounts = useLiveQuery(
-    () => db.accounts.orderBy("createdAt").reverse().toArray(),
+    () =>
+      db.accounts
+        .orderBy("createdAt")
+        .reverse()
+        .toArray(),
     [],
   );
 
-  const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] =
+    useState(false);
+
   const [adjustmentModalOpen, setAdjustmentModalOpen] =
     useState(false);
 
-  const [selectedBank, setSelectedBank] = useState<Bank>();
+  const [selectedBank, setSelectedBank] =
+    useState<Bank>();
+
   const [balance, setBalance] = useState("");
 
   const [editingAccountId, setEditingAccountId] =
@@ -71,8 +87,29 @@ export default function Accounts() {
   const [accountToDelete, setAccountToDelete] =
     useState<Account>();
 
-  const [adjustedBalance, setAdjustedBalance] = useState("");
+  const [adjustedBalance, setAdjustedBalance] =
+    useState("");
+
+  const [alert, setAlert] =
+    useState<AlertData>();
+
   const [saving, setSaving] = useState(false);
+
+  function showAlert(
+    title: string,
+    message: string,
+    type: AlertType = "info",
+  ) {
+    setAlert({
+      title,
+      message,
+      type,
+    });
+  }
+
+  function closeAlert() {
+    setAlert(undefined);
+  }
 
   function openNewAccountModal() {
     setEditingAccountId(null);
@@ -124,7 +161,12 @@ export default function Accounts() {
     event.preventDefault();
 
     if (!selectedBank) {
-      window.alert("Selecione um banco ou carteira.");
+      showAlert(
+        "Banco não selecionado",
+        "Selecione um banco ou carteira antes de salvar a conta.",
+        "warning",
+      );
+
       return;
     }
 
@@ -139,13 +181,19 @@ export default function Accounts() {
           type: selectedBank.type,
         });
       } else {
-        const numericBalance = parseCurrencyValue(balance);
+        const numericBalance =
+          parseCurrencyValue(balance);
 
         if (
           balance.trim() === "" ||
           Number.isNaN(numericBalance)
         ) {
-          window.alert("Digite um saldo inicial válido.");
+          showAlert(
+            "Saldo inválido",
+            "Digite um saldo inicial válido para criar a conta.",
+            "warning",
+          );
+
           return;
         }
 
@@ -169,8 +217,10 @@ export default function Accounts() {
     } catch (error) {
       console.error("Erro ao salvar conta:", error);
 
-      window.alert(
-        "Não foi possível salvar a conta. Tente novamente.",
+      showAlert(
+        "Não foi possível salvar",
+        "Ocorreu um erro ao salvar a conta. Tente novamente.",
+        "error",
       );
     } finally {
       setSaving(false);
@@ -184,17 +234,24 @@ export default function Accounts() {
 
     if (!adjustingAccount) return;
 
-    const newBalance = parseCurrencyValue(adjustedBalance);
+    const newBalance =
+      parseCurrencyValue(adjustedBalance);
 
     if (
       adjustedBalance.trim() === "" ||
       Number.isNaN(newBalance)
     ) {
-      window.alert("Digite um saldo válido.");
+      showAlert(
+        "Saldo inválido",
+        "Digite um saldo válido para realizar o ajuste.",
+        "warning",
+      );
+
       return;
     }
 
-    const difference = newBalance - adjustingAccount.balance;
+    const difference =
+      newBalance - adjustingAccount.balance;
 
     if (difference === 0) {
       closeAdjustmentModal();
@@ -209,14 +266,20 @@ export default function Accounts() {
         db.accounts,
         db.transactions,
         async () => {
-          await db.accounts.update(adjustingAccount.id, {
-            balance: newBalance,
-          });
+          await db.accounts.update(
+            adjustingAccount.id,
+            {
+              balance: newBalance,
+            },
+          );
 
           const adjustmentTransaction: Transaction = {
             id: Date.now(),
             accountId: adjustingAccount.id,
-            type: difference > 0 ? "income" : "expense",
+            type:
+              difference > 0
+                ? "income"
+                : "expense",
             category: "Ajuste de saldo",
             description: `Saldo corrigido de ${formatCurrency(
               adjustingAccount.balance,
@@ -227,7 +290,9 @@ export default function Accounts() {
             isAdjustment: true,
           };
 
-          await db.transactions.add(adjustmentTransaction);
+          await db.transactions.add(
+            adjustmentTransaction,
+          );
         },
       );
 
@@ -235,44 +300,77 @@ export default function Accounts() {
       setAdjustingAccount(undefined);
       setAdjustedBalance("");
     } catch (error) {
-      console.error("Erro ao ajustar saldo:", error);
+      console.error(
+        "Erro ao ajustar saldo:",
+        error,
+      );
 
-      window.alert(
-        "Não foi possível ajustar o saldo. Tente novamente.",
+      showAlert(
+        "Não foi possível ajustar",
+        "Ocorreu um erro ao ajustar o saldo da conta. Tente novamente.",
+        "error",
       );
     } finally {
       setSaving(false);
     }
   }
 
-  async function requestDeleteAccount(account: Account) {
-    const accountTransactions = await db.transactions
-      .where("accountId")
-      .equals(account.id)
-      .count();
+  async function requestDeleteAccount(
+    account: Account,
+  ) {
+    try {
+      const accountTransactions =
+        await db.transactions
+          .where("accountId")
+          .equals(account.id)
+          .count();
 
-    if (accountTransactions > 0) {
-      window.alert(
-        "Essa conta possui movimentações. Exclua primeiro as movimentações relacionadas a ela.",
+      if (accountTransactions > 0) {
+        showAlert(
+          "Conta com movimentações",
+          "Essa conta possui movimentações. Exclua primeiro as receitas, despesas e ajustes relacionados a ela.",
+          "warning",
+        );
+
+        return;
+      }
+
+      setAccountToDelete(account);
+    } catch (error) {
+      console.error(
+        "Erro ao verificar movimentações:",
+        error,
       );
 
-      return;
+      showAlert(
+        "Não foi possível verificar",
+        "Ocorreu um erro ao verificar as movimentações dessa conta.",
+        "error",
+      );
     }
-
-    setAccountToDelete(account);
   }
 
   async function confirmDeleteAccount() {
     if (!accountToDelete) return;
 
     try {
-      await db.accounts.delete(accountToDelete.id);
+      await db.accounts.delete(
+        accountToDelete.id,
+      );
+
       setAccountToDelete(undefined);
     } catch (error) {
-      console.error("Erro ao excluir conta:", error);
+      console.error(
+        "Erro ao excluir conta:",
+        error,
+      );
 
-      window.alert(
-        "Não foi possível excluir a conta. Tente novamente.",
+      setAccountToDelete(undefined);
+
+      showAlert(
+        "Não foi possível excluir",
+        "Ocorreu um erro ao excluir a conta. Tente novamente.",
+        "error",
       );
     }
   }
@@ -294,7 +392,8 @@ export default function Accounts() {
           </h1>
 
           <p className="mt-2 text-slate-400">
-            Gerencie seus bancos, carteiras digitais e dinheiro.
+            Gerencie seus bancos, carteiras digitais
+            e dinheiro.
           </p>
         </div>
 
@@ -320,7 +419,8 @@ export default function Accounts() {
           </h2>
 
           <p className="mt-2 text-slate-400">
-            Cadastre sua primeira conta para começar a controlar seus saldos.
+            Cadastre sua primeira conta para começar
+            a controlar seus saldos.
           </p>
 
           <button
@@ -456,9 +556,11 @@ export default function Accounts() {
 
           {editingAccountId !== null && (
             <p className="rounded-xl bg-slate-900 p-4 text-sm text-slate-400">
-              Para corrigir o valor disponível, use a opção
+              Para corrigir o valor disponível,
+              use a opção
               <strong className="text-slate-200">
-                {" "}Ajustar saldo
+                {" "}
+                Ajustar saldo
               </strong>
               .
             </p>
@@ -511,7 +613,9 @@ export default function Accounts() {
               </p>
 
               <strong className="mt-1 block text-xl">
-                {formatCurrency(adjustingAccount.balance)}
+                {formatCurrency(
+                  adjustingAccount.balance,
+                )}
               </strong>
             </div>
           )}
@@ -525,8 +629,9 @@ export default function Accounts() {
           />
 
           <p className="text-sm text-slate-400">
-            A diferença será registrada automaticamente no
-            histórico como um ajuste de saldo.
+            A diferença será registrada
+            automaticamente no histórico como um
+            ajuste de saldo.
           </p>
 
           <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
@@ -558,7 +663,17 @@ export default function Accounts() {
         }?`}
         confirmText="Excluir conta"
         onConfirm={confirmDeleteAccount}
-        onCancel={() => setAccountToDelete(undefined)}
+        onCancel={() =>
+          setAccountToDelete(undefined)
+        }
+      />
+
+      <AlertModal
+        open={Boolean(alert)}
+        title={alert?.title ?? ""}
+        message={alert?.message ?? ""}
+        type={alert?.type}
+        onClose={closeAlert}
       />
     </div>
   );
