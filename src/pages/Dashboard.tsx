@@ -1,14 +1,26 @@
 import { useLiveQuery } from "dexie-react-hooks";
-import { Landmark, WalletCards } from "lucide-react";
+import {
+  ArrowDownCircle,
+  ArrowUpCircle,
+  Landmark,
+  WalletCards,
+} from "lucide-react";
 
 import Card from "../components/Card/Card";
 import { db } from "../database/database";
 
 export default function Dashboard() {
-  const accounts = useLiveQuery(
-    () => db.accounts.orderBy("createdAt").reverse().toArray(),
-    [],
-  );
+  const dashboardData = useLiveQuery(async () => {
+    const [accounts, transactions] = await Promise.all([
+      db.accounts.orderBy("createdAt").reverse().toArray(),
+      db.transactions.toArray(),
+    ]);
+
+    return {
+      accounts,
+      transactions,
+    };
+  }, []);
 
   function formatCurrency(value: number) {
     return value.toLocaleString("pt-BR", {
@@ -17,7 +29,23 @@ export default function Dashboard() {
     });
   }
 
-  if (accounts === undefined) {
+  function getCurrentMonthKey() {
+    const today = new Date();
+
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, "0");
+
+    return `${year}-${month}`;
+  }
+
+  function getCurrentMonthName() {
+    return new Intl.DateTimeFormat("pt-BR", {
+      month: "long",
+      year: "numeric",
+    }).format(new Date());
+  }
+
+  if (dashboardData === undefined) {
     return (
       <div className="flex min-h-64 items-center justify-center text-slate-400">
         Carregando dashboard...
@@ -25,10 +53,34 @@ export default function Dashboard() {
     );
   }
 
+  const { accounts, transactions } = dashboardData;
+
+  const currentMonthKey = getCurrentMonthKey();
+
+  const currentMonthTransactions = transactions.filter((transaction) =>
+    transaction.date.startsWith(currentMonthKey),
+  );
+
+  const totalIncome = currentMonthTransactions
+    .filter((transaction) => transaction.type === "income")
+    .reduce(
+      (total, transaction) => total + transaction.amount,
+      0,
+    );
+
+  const totalExpense = currentMonthTransactions
+    .filter((transaction) => transaction.type === "expense")
+    .reduce(
+      (total, transaction) => total + transaction.amount,
+      0,
+    );
+
   const totalBalance = accounts.reduce(
     (total, account) => total + account.balance,
     0,
   );
+
+  const monthResult = totalIncome - totalExpense;
 
   return (
     <div>
@@ -38,13 +90,17 @@ export default function Dashboard() {
         </h1>
 
         <p className="mt-2 text-slate-400">
-          Acompanhe sua situação financeira.
+          Resumo financeiro de{" "}
+          <span className="capitalize">
+            {getCurrentMonthName()}
+          </span>
+          .
         </p>
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card
-          title="Saldo Total"
+          title="Saldo total"
           value={formatCurrency(totalBalance)}
           color={
             totalBalance < 0
@@ -55,16 +111,80 @@ export default function Dashboard() {
 
         <Card
           title="Receitas do mês"
-          value={formatCurrency(0)}
+          value={formatCurrency(totalIncome)}
           color="text-emerald-400"
         />
 
         <Card
           title="Despesas do mês"
-          value={formatCurrency(0)}
+          value={formatCurrency(totalExpense)}
           color="text-red-400"
         />
       </div>
+
+      <section className="mt-8 grid gap-5 md:grid-cols-3">
+        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-emerald-950 p-3 text-emerald-400">
+              <ArrowUpCircle size={24} />
+            </div>
+
+            <div>
+              <p className="text-sm text-slate-400">
+                Receitas registradas
+              </p>
+
+              <strong className="text-xl">
+                {
+                  currentMonthTransactions.filter(
+                    (transaction) =>
+                      transaction.type === "income",
+                  ).length
+                }
+              </strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5">
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-red-950 p-3 text-red-400">
+              <ArrowDownCircle size={24} />
+            </div>
+
+            <div>
+              <p className="text-sm text-slate-400">
+                Despesas registradas
+              </p>
+
+              <strong className="text-xl">
+                {
+                  currentMonthTransactions.filter(
+                    (transaction) =>
+                      transaction.type === "expense",
+                  ).length
+                }
+              </strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5">
+          <p className="text-sm text-slate-400">
+            Resultado do mês
+          </p>
+
+          <strong
+            className={`mt-2 block text-2xl ${
+              monthResult < 0
+                ? "text-red-400"
+                : "text-emerald-400"
+            }`}
+          >
+            {formatCurrency(monthResult)}
+          </strong>
+        </div>
+      </section>
 
       <section className="mt-8 rounded-2xl border border-slate-700 bg-slate-800 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
