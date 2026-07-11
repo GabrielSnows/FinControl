@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 
 import Modal from "../Modal/Modal";
+import AlertModal from "../AlertModal/AlertModal";
 import Button from "../ui/Button";
 import Input from "../ui/Input";
 
@@ -10,6 +11,7 @@ import type {
   Transaction,
   TransactionType,
 } from "../../types/Transaction";
+import type { AlertType } from "../AlertModal/AlertModal";
 
 type TransactionFormData = {
   accountId: number;
@@ -28,6 +30,12 @@ type TransactionModalProps = {
   saving: boolean;
   onClose: () => void;
   onSave: (data: TransactionFormData) => Promise<void>;
+};
+
+type AlertData = {
+  title: string;
+  message: string;
+  type: AlertType;
 };
 
 const incomeCategories = [
@@ -56,7 +64,13 @@ const expenseCategories = [
 ];
 
 function getToday() {
-  return new Date().toISOString().split("T")[0];
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
 export default function TransactionModal({
@@ -74,10 +88,24 @@ export default function TransactionModal({
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(getToday());
 
+  const [alert, setAlert] = useState<AlertData>();
+
   const categories =
     type === "income"
       ? incomeCategories
       : expenseCategories;
+
+  function showAlert(
+    title: string,
+    message: string,
+    alertType: AlertType = "warning",
+  ) {
+    setAlert({
+      title,
+      message,
+      type: alertType,
+    });
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -124,12 +152,20 @@ export default function TransactionModal({
     const numericAmount = Number(normalizedAmount);
 
     if (!selectedAccountId) {
-      window.alert("Selecione uma conta.");
+      showAlert(
+        "Conta não selecionada",
+        "Selecione a conta que será afetada por esta movimentação.",
+      );
+
       return;
     }
 
     if (!category) {
-      window.alert("Selecione uma categoria.");
+      showAlert(
+        "Categoria não selecionada",
+        "Selecione uma categoria para a movimentação.",
+      );
+
       return;
     }
 
@@ -138,12 +174,20 @@ export default function TransactionModal({
       Number.isNaN(numericAmount) ||
       numericAmount <= 0
     ) {
-      window.alert("Digite um valor maior que zero.");
+      showAlert(
+        "Valor inválido",
+        "Digite um valor maior que zero.",
+      );
+
       return;
     }
 
     if (!date) {
-      window.alert("Selecione uma data.");
+      showAlert(
+        "Data não informada",
+        "Selecione a data da movimentação.",
+      );
+
       return;
     }
 
@@ -158,140 +202,150 @@ export default function TransactionModal({
   }
 
   return (
-    <Modal
-      open={open}
-      title={
-        transaction
-          ? "Editar movimentação"
-          : type === "income"
-            ? "Nova receita"
-            : "Nova despesa"
-      }
-      onClose={onClose}
-    >
-      {accounts.length === 0 ? (
-        <div>
-          <p className="text-slate-300">
-            Você precisa cadastrar uma conta antes de
-            registrar movimentações.
-          </p>
+    <>
+      <Modal
+        open={open}
+        title={
+          transaction
+            ? "Editar movimentação"
+            : type === "income"
+              ? "Nova receita"
+              : "Nova despesa"
+        }
+        onClose={onClose}
+      >
+        {accounts.length === 0 ? (
+          <div>
+            <p className="text-slate-300">
+              Você precisa cadastrar uma conta antes de
+              registrar movimentações.
+            </p>
 
-          <div className="mt-6 flex justify-end">
-            <Button
-              variant="secondary"
-              onClick={onClose}
-            >
-              Fechar
-            </Button>
+            <div className="mt-6 flex justify-end">
+              <Button
+                variant="secondary"
+                onClick={onClose}
+              >
+                Fechar
+              </Button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5"
-        >
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-300">
-              Conta
-            </label>
+        ) : (
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-5"
+          >
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-300">
+                Conta
+              </label>
 
-            <select
-              value={accountId}
-              onChange={(event) =>
-                setAccountId(event.target.value)
-              }
-              className="w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-emerald-500"
-            >
-              <option value="">
-                Selecione uma conta
-              </option>
-
-              {accounts.map((account) => (
-                <option
-                  key={account.id}
-                  value={account.id}
-                >
-                  {account.name}
+              <select
+                value={accountId}
+                onChange={(event) =>
+                  setAccountId(event.target.value)
+                }
+                className="w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-emerald-500"
+              >
+                <option value="">
+                  Selecione uma conta
                 </option>
-              ))}
-            </select>
-          </div>
 
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-slate-300">
-              Categoria
-            </label>
+                {accounts.map((account) => (
+                  <option
+                    key={account.id}
+                    value={account.id}
+                  >
+                    {account.name}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-            <select
-              value={category}
-              onChange={(event) =>
-                setCategory(event.target.value)
-              }
-              className="w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-emerald-500"
-            >
-              <option value="">
-                Selecione uma categoria
-              </option>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-300">
+                Categoria
+              </label>
 
-              {categories.map((categoryName) => (
-                <option
-                  key={categoryName}
-                  value={categoryName}
-                >
-                  {categoryName}
+              <select
+                value={category}
+                onChange={(event) =>
+                  setCategory(event.target.value)
+                }
+                className="w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-emerald-500"
+              >
+                <option value="">
+                  Selecione uma categoria
                 </option>
-              ))}
-            </select>
-          </div>
 
-          <Input
-            label="Valor"
-            type="text"
-            placeholder="0,00"
-            value={amount}
-            onChange={setAmount}
-          />
+                {categories.map((categoryName) => (
+                  <option
+                    key={categoryName}
+                    value={categoryName}
+                  >
+                    {categoryName}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <Input
-            label="Descrição"
-            type="text"
-            placeholder="Ex.: Compra no mercado"
-            value={description}
-            onChange={setDescription}
-          />
+            <Input
+              label="Valor"
+              type="text"
+              placeholder="0,00"
+              value={amount}
+              onChange={setAmount}
+            />
 
-          <Input
-            label="Data"
-            type="date"
-            value={date}
-            onChange={setDate}
-          />
+            <Input
+              label="Descrição"
+              type="text"
+              placeholder="Ex.: Compra no mercado"
+              value={description}
+              onChange={setDescription}
+            />
 
-          <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
-            <Button
-              variant="secondary"
-              onClick={onClose}
-              disabled={saving}
-            >
-              Cancelar
-            </Button>
+            <Input
+              label="Data"
+              type="date"
+              value={date}
+              onChange={setDate}
+            />
 
-            <Button
-              type="submit"
-              disabled={saving}
-            >
-              {saving
-                ? "Salvando..."
-                : transaction
-                  ? "Salvar alterações"
-                  : type === "income"
-                    ? "Salvar receita"
-                    : "Salvar despesa"}
-            </Button>
-          </div>
-        </form>
-      )}
-    </Modal>
+            <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
+              <Button
+                variant="secondary"
+                onClick={onClose}
+                disabled={saving}
+              >
+                Cancelar
+              </Button>
+
+              <Button
+                type="submit"
+                disabled={saving}
+              >
+                {saving
+                  ? "Salvando..."
+                  : transaction
+                    ? "Salvar alterações"
+                    : type === "income"
+                      ? "Salvar receita"
+                      : "Salvar despesa"}
+              </Button>
+            </div>
+          </form>
+        )}
+      </Modal>
+
+      <AlertModal
+        open={Boolean(alert)}
+        title={alert?.title ?? ""}
+        message={alert?.message ?? ""}
+        type={alert?.type}
+        onClose={() => setAlert(undefined)}
+      />
+    </>
   );
 }
 

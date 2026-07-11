@@ -11,6 +11,7 @@ import {
 
 import TransactionModal from "../components/TransactionModal/TransactionModal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import AlertModal from "../components/AlertModal/AlertModal";
 
 import { db } from "../database/database";
 
@@ -20,6 +21,13 @@ import type {
 } from "../types/Transaction";
 
 import type { TransactionFormData } from "../components/TransactionModal/TransactionModal";
+import type { AlertType } from "../components/AlertModal/AlertModal";
+
+type AlertData = {
+  title: string;
+  message: string;
+  type: AlertType;
+};
 
 export default function Transactions() {
   const accounts = useLiveQuery(
@@ -47,7 +55,20 @@ export default function Transactions() {
   const [transactionToDelete, setTransactionToDelete] =
     useState<Transaction>();
 
+  const [alert, setAlert] = useState<AlertData>();
   const [saving, setSaving] = useState(false);
+
+  function showAlert(
+    title: string,
+    message: string,
+    alertType: AlertType = "error",
+  ) {
+    setAlert({
+      title,
+      message,
+      type: alertType,
+    });
+  }
 
   function openNewTransaction(
     type: TransactionType,
@@ -189,15 +210,17 @@ export default function Transactions() {
         },
       );
 
-      closeModal();
+      setModalOpen(false);
+      setEditingTransaction(undefined);
     } catch (error) {
       console.error(
         "Erro ao salvar movimentação:",
         error,
       );
 
-      window.alert(
-        "Não foi possível salvar a movimentação.",
+      showAlert(
+        "Não foi possível salvar",
+        "Ocorreu um erro ao salvar a movimentação. Tente novamente.",
       );
     } finally {
       setSaving(false);
@@ -245,8 +268,11 @@ export default function Transactions() {
         error,
       );
 
-      window.alert(
-        "Não foi possível excluir a movimentação.",
+      setTransactionToDelete(undefined);
+
+      showAlert(
+        "Não foi possível excluir",
+        "Ocorreu um erro ao excluir a movimentação. Tente novamente.",
       );
     }
   }
@@ -259,8 +285,7 @@ export default function Transactions() {
   }
 
   function formatDate(value: string) {
-    const [year, month, day] =
-      value.split("-");
+    const [year, month, day] = value.split("-");
 
     return `${day}/${month}/${year}`;
   }
@@ -443,6 +468,14 @@ export default function Transactions() {
         onCancel={() =>
           setTransactionToDelete(undefined)
         }
+      />
+
+      <AlertModal
+        open={Boolean(alert)}
+        title={alert?.title ?? ""}
+        message={alert?.message ?? ""}
+        type={alert?.type}
+        onClose={() => setAlert(undefined)}
       />
     </div>
   );
