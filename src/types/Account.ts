@@ -5,4 +5,5 @@ export interface Account {
   balance: number;
   image: string;
   type: "bank" | "wallet";
+  createdAt: string;
 }

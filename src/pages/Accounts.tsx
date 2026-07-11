@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLiveQuery } from "dexie-react-hooks";
 import {
   Pencil,
   Plus,
@@ -11,17 +12,24 @@ import Modal from "../components/Modal/Modal";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
+import { db } from "../database/database";
+
 import type { Account } from "../types/Account";
 import type { Bank } from "../data/banks";
 
 export default function Accounts() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
+  const accounts = useLiveQuery(
+    () => db.accounts.orderBy("createdAt").reverse().toArray(),
+    [],
+  );
+
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedBank, setSelectedBank] = useState<Bank>();
   const [balance, setBalance] = useState("");
   const [editingAccountId, setEditingAccountId] = useState<number | null>(
     null,
   );
+  const [saving, setSaving] = useState(false);
 
   function openNewAccountModal() {
     setEditingAccountId(null);
@@ -45,75 +53,95 @@ export default function Accounts() {
   }
 
   function closeModal() {
+    if (saving) return;
+
     setModalOpen(false);
     setSelectedBank(undefined);
     setBalance("");
     setEditingAccountId(null);
   }
 
-  function saveAccount(event: React.FormEvent<HTMLFormElement>) {
+  async function saveAccount(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     if (!selectedBank) {
-      alert("Selecione um banco ou carteira.");
+      window.alert("Selecione um banco ou carteira.");
       return;
     }
 
-    const numericBalance = Number(
-      balance.replace(",", "."),
-    );
+    const normalizedBalance = balance
+      .trim()
+      .replace(/\./g, "")
+      .replace(",", ".");
 
-    if (Number.isNaN(numericBalance)) {
-      alert("Digite um saldo válido.");
+    const numericBalance = Number(normalizedBalance);
+
+    if (
+      normalizedBalance === "" ||
+      Number.isNaN(numericBalance)
+    ) {
+      window.alert("Digite um saldo válido.");
       return;
     }
 
-    if (editingAccountId !== null) {
-      setAccounts((currentAccounts) =>
-        currentAccounts.map((account) =>
-          account.id === editingAccountId
-            ? {
-                ...account,
-                bankId: selectedBank.id,
-                name: selectedBank.name,
-                image: selectedBank.image,
-                type: selectedBank.type,
-                balance: numericBalance,
-              }
-            : account,
-        ),
+    try {
+      setSaving(true);
+
+      if (editingAccountId !== null) {
+        await db.accounts.update(editingAccountId, {
+          bankId: selectedBank.id,
+          name: selectedBank.name,
+          image: selectedBank.image,
+          type: selectedBank.type,
+          balance: numericBalance,
+        });
+      } else {
+        const newAccount: Account = {
+          id: Date.now(),
+          bankId: selectedBank.id,
+          name: selectedBank.name,
+          image: selectedBank.image,
+          type: selectedBank.type,
+          balance: numericBalance,
+          createdAt: new Date().toISOString(),
+        };
+
+        await db.accounts.add(newAccount);
+      }
+
+      setModalOpen(false);
+      setSelectedBank(undefined);
+      setBalance("");
+      setEditingAccountId(null);
+    } catch (error) {
+      console.error("Erro ao salvar conta:", error);
+
+      window.alert(
+        "Não foi possível salvar a conta. Tente novamente.",
       );
-    } else {
-      const newAccount: Account = {
-        id: Date.now(),
-        bankId: selectedBank.id,
-        name: selectedBank.name,
-        image: selectedBank.image,
-        type: selectedBank.type,
-        balance: numericBalance,
-      };
-
-      setAccounts((currentAccounts) => [
-        ...currentAccounts,
-        newAccount,
-      ]);
+    } finally {
+      setSaving(false);
     }
-
-    closeModal();
   }
 
-  function deleteAccount(accountId: number) {
+  async function deleteAccount(accountId: number) {
     const confirmed = window.confirm(
       "Tem certeza de que deseja excluir esta conta?",
     );
 
     if (!confirmed) return;
 
-    setAccounts((currentAccounts) =>
-      currentAccounts.filter(
-        (account) => account.id !== accountId,
-      ),
-    );
+    try {
+      await db.accounts.delete(accountId);
+    } catch (error) {
+      console.error("Erro ao excluir conta:", error);
+
+      window.alert(
+        "Não foi possível excluir a conta. Tente novamente.",
+      );
+    }
   }
 
   function formatCurrency(value: number) {
@@ -121,6 +149,14 @@ export default function Accounts() {
       style: "currency",
       currency: "BRL",
     });
+  }
+
+  if (accounts === undefined) {
+    return (
+      <div className="flex min-h-64 items-center justify-center text-slate-400">
+        Carregando contas...
+      </div>
+    );
   }
 
   return (
@@ -269,10 +305,12 @@ export default function Accounts() {
           </div>
 
           <Input
-            label="Saldo inicial"
-            type="number"
-            min="0"
-            step="0.01"
+            label={
+              editingAccountId === null
+                ? "Saldo inicial"
+                : "Saldo atual"
+            }
+            type="text"
             placeholder="0,00"
             value={balance}
             onChange={setBalance}
@@ -282,17 +320,20 @@ export default function Accounts() {
             <Button
               variant="secondary"
               onClick={closeModal}
+              disabled={saving}
             >
               Cancelar
             </Button>
 
             <Button
               type="submit"
-              disabled={!selectedBank}
+              disabled={!selectedBank || saving}
             >
-              {editingAccountId === null
-                ? "Salvar conta"
-                : "Salvar alterações"}
+              {saving
+                ? "Salvando..."
+                : editingAccountId === null
+                  ? "Salvar conta"
+                  : "Salvar alterações"}
             </Button>
           </div>
         </form>
