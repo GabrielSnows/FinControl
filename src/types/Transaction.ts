@@ -9,4 +9,5 @@ export interface Transaction {
   amount: number;
   date: string;
   createdAt: string;
+  isAdjustment?: boolean;
 }

@@ -1,8 +1,12 @@
 import { useState } from "react";
+import type { FormEvent } from "react";
+
 import { useLiveQuery } from "dexie-react-hooks";
+
 import {
   Pencil,
   Plus,
+  Scale,
   Trash2,
   WalletCards,
 } from "lucide-react";
@@ -15,7 +19,34 @@ import Input from "../components/ui/Input";
 import { db } from "../database/database";
 
 import type { Account } from "../types/Account";
+import type { Transaction } from "../types/Transaction";
 import type { Bank } from "../data/banks";
+
+function getLocalDate() {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function parseCurrencyValue(value: string) {
+  const normalizedValue = value
+    .trim()
+    .replace(/\./g, "")
+    .replace(",", ".");
+
+  return Number(normalizedValue);
+}
+
+function formatCurrency(value: number) {
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
 
 export default function Accounts() {
   const accounts = useLiveQuery(
@@ -23,19 +54,28 @@ export default function Accounts() {
     [],
   );
 
-  const [modalOpen, setModalOpen] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
+  const [adjustmentModalOpen, setAdjustmentModalOpen] =
+    useState(false);
+
   const [selectedBank, setSelectedBank] = useState<Bank>();
   const [balance, setBalance] = useState("");
-  const [editingAccountId, setEditingAccountId] = useState<number | null>(
-    null,
-  );
+
+  const [editingAccountId, setEditingAccountId] =
+    useState<number | null>(null);
+
+  const [adjustingAccount, setAdjustingAccount] =
+    useState<Account>();
+
+  const [adjustedBalance, setAdjustedBalance] = useState("");
+
   const [saving, setSaving] = useState(false);
 
   function openNewAccountModal() {
     setEditingAccountId(null);
     setSelectedBank(undefined);
     setBalance("");
-    setModalOpen(true);
+    setAccountModalOpen(true);
   }
 
   function openEditAccountModal(account: Account) {
@@ -48,41 +88,40 @@ export default function Accounts() {
       type: account.type,
     });
 
-    setBalance(String(account.balance));
-    setModalOpen(true);
+    setBalance("");
+    setAccountModalOpen(true);
   }
 
-  function closeModal() {
+  function closeAccountModal() {
     if (saving) return;
 
-    setModalOpen(false);
+    setAccountModalOpen(false);
     setSelectedBank(undefined);
     setBalance("");
     setEditingAccountId(null);
   }
 
+  function openAdjustmentModal(account: Account) {
+    setAdjustingAccount(account);
+    setAdjustedBalance(String(account.balance));
+    setAdjustmentModalOpen(true);
+  }
+
+  function closeAdjustmentModal() {
+    if (saving) return;
+
+    setAdjustmentModalOpen(false);
+    setAdjustingAccount(undefined);
+    setAdjustedBalance("");
+  }
+
   async function saveAccount(
-    event: React.FormEvent<HTMLFormElement>,
+    event: FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
     if (!selectedBank) {
       window.alert("Selecione um banco ou carteira.");
-      return;
-    }
-
-    const normalizedBalance = balance
-      .trim()
-      .replace(/\./g, "")
-      .replace(",", ".");
-
-    const numericBalance = Number(normalizedBalance);
-
-    if (
-      normalizedBalance === "" ||
-      Number.isNaN(numericBalance)
-    ) {
-      window.alert("Digite um saldo válido.");
       return;
     }
 
@@ -95,9 +134,18 @@ export default function Accounts() {
           name: selectedBank.name,
           image: selectedBank.image,
           type: selectedBank.type,
-          balance: numericBalance,
         });
       } else {
+        const numericBalance = parseCurrencyValue(balance);
+
+        if (
+          balance.trim() === "" ||
+          Number.isNaN(numericBalance)
+        ) {
+          window.alert("Digite um saldo inicial válido.");
+          return;
+        }
+
         const newAccount: Account = {
           id: Date.now(),
           bankId: selectedBank.id,
@@ -111,7 +159,7 @@ export default function Accounts() {
         await db.accounts.add(newAccount);
       }
 
-      setModalOpen(false);
+      setAccountModalOpen(false);
       setSelectedBank(undefined);
       setBalance("");
       setEditingAccountId(null);
@@ -126,7 +174,88 @@ export default function Accounts() {
     }
   }
 
+  async function saveBalanceAdjustment(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    if (!adjustingAccount) return;
+
+    const newBalance = parseCurrencyValue(adjustedBalance);
+
+    if (
+      adjustedBalance.trim() === "" ||
+      Number.isNaN(newBalance)
+    ) {
+      window.alert("Digite um saldo válido.");
+      return;
+    }
+
+    const difference = newBalance - adjustingAccount.balance;
+
+    if (difference === 0) {
+      closeAdjustmentModal();
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      await db.transaction(
+        "rw",
+        db.accounts,
+        db.transactions,
+        async () => {
+          await db.accounts.update(adjustingAccount.id, {
+            balance: newBalance,
+          });
+
+          const adjustmentTransaction: Transaction = {
+            id: Date.now(),
+            accountId: adjustingAccount.id,
+            type: difference > 0 ? "income" : "expense",
+            category: "Ajuste de saldo",
+            description: `Saldo corrigido de ${formatCurrency(
+              adjustingAccount.balance,
+            )} para ${formatCurrency(newBalance)}`,
+            amount: Math.abs(difference),
+            date: getLocalDate(),
+            createdAt: new Date().toISOString(),
+            isAdjustment: true,
+          };
+
+          await db.transactions.add(adjustmentTransaction);
+        },
+      );
+
+      setAdjustmentModalOpen(false);
+      setAdjustingAccount(undefined);
+      setAdjustedBalance("");
+    } catch (error) {
+      console.error("Erro ao ajustar saldo:", error);
+
+      window.alert(
+        "Não foi possível ajustar o saldo. Tente novamente.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function deleteAccount(accountId: number) {
+    const accountTransactions = await db.transactions
+      .where("accountId")
+      .equals(accountId)
+      .count();
+
+    if (accountTransactions > 0) {
+      window.alert(
+        "Essa conta possui movimentações. Exclua primeiro as movimentações relacionadas a ela.",
+      );
+
+      return;
+    }
+
     const confirmed = window.confirm(
       "Tem certeza de que deseja excluir esta conta?",
     );
@@ -142,13 +271,6 @@ export default function Accounts() {
         "Não foi possível excluir a conta. Tente novamente.",
       );
     }
-  }
-
-  function formatCurrency(value: number) {
-    return value.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
   }
 
   if (accounts === undefined) {
@@ -241,6 +363,7 @@ export default function Accounts() {
                     onClick={() =>
                       openEditAccountModal(account)
                     }
+                    title="Editar conta"
                     aria-label={`Editar ${account.name}`}
                     className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
                   >
@@ -250,8 +373,21 @@ export default function Accounts() {
                   <button
                     type="button"
                     onClick={() =>
+                      openAdjustmentModal(account)
+                    }
+                    title="Ajustar saldo"
+                    aria-label={`Ajustar saldo de ${account.name}`}
+                    className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-amber-950 hover:text-amber-400"
+                  >
+                    <Scale size={18} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
                       deleteAccount(account.id)
                     }
+                    title="Excluir conta"
                     aria-label={`Excluir ${account.name}`}
                     className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-red-950 hover:text-red-400"
                   >
@@ -281,13 +417,13 @@ export default function Accounts() {
       )}
 
       <Modal
-        open={modalOpen}
+        open={accountModalOpen}
         title={
           editingAccountId === null
             ? "Nova Conta"
             : "Editar Conta"
         }
-        onClose={closeModal}
+        onClose={closeAccountModal}
       >
         <form
           onSubmit={saveAccount}
@@ -304,22 +440,30 @@ export default function Accounts() {
             />
           </div>
 
-          <Input
-            label={
-              editingAccountId === null
-                ? "Saldo inicial"
-                : "Saldo atual"
-            }
-            type="text"
-            placeholder="0,00"
-            value={balance}
-            onChange={setBalance}
-          />
+          {editingAccountId === null && (
+            <Input
+              label="Saldo inicial"
+              type="text"
+              placeholder="0,00"
+              value={balance}
+              onChange={setBalance}
+            />
+          )}
+
+          {editingAccountId !== null && (
+            <p className="rounded-xl bg-slate-900 p-4 text-sm text-slate-400">
+              Para corrigir o valor disponível, use a opção
+              <strong className="text-slate-200">
+                {" "}Ajustar saldo
+              </strong>
+              .
+            </p>
+          )}
 
           <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
             <Button
               variant="secondary"
-              onClick={closeModal}
+              onClick={closeAccountModal}
               disabled={saving}
             >
               Cancelar
@@ -334,6 +478,69 @@ export default function Accounts() {
                 : editingAccountId === null
                   ? "Salvar conta"
                   : "Salvar alterações"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal
+        open={adjustmentModalOpen}
+        title="Ajustar saldo"
+        onClose={closeAdjustmentModal}
+      >
+        <form
+          onSubmit={saveBalanceAdjustment}
+          className="space-y-6"
+        >
+          {adjustingAccount && (
+            <div className="rounded-xl bg-slate-900 p-4">
+              <p className="text-sm text-slate-400">
+                Conta
+              </p>
+
+              <strong className="mt-1 block">
+                {adjustingAccount.name}
+              </strong>
+
+              <p className="mt-4 text-sm text-slate-400">
+                Saldo registrado atualmente
+              </p>
+
+              <strong className="mt-1 block text-xl">
+                {formatCurrency(adjustingAccount.balance)}
+              </strong>
+            </div>
+          )}
+
+          <Input
+            label="Novo saldo atual"
+            type="text"
+            placeholder="0,00"
+            value={adjustedBalance}
+            onChange={setAdjustedBalance}
+          />
+
+          <p className="text-sm text-slate-400">
+            A diferença será registrada automaticamente no
+            histórico como um ajuste de saldo.
+          </p>
+
+          <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
+            <Button
+              variant="secondary"
+              onClick={closeAdjustmentModal}
+              disabled={saving}
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              type="submit"
+              disabled={saving}
+            >
+              {saving
+                ? "Ajustando..."
+                : "Confirmar ajuste"}
             </Button>
           </div>
         </form>

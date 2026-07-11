@@ -1,4 +1,5 @@
 import { useLiveQuery } from "dexie-react-hooks";
+
 import {
   ArrowDownCircle,
   ArrowUpCircle,
@@ -57,23 +58,29 @@ export default function Dashboard() {
 
   const currentMonthKey = getCurrentMonthKey();
 
-  const currentMonthTransactions = transactions.filter((transaction) =>
-    transaction.date.startsWith(currentMonthKey),
+  const currentMonthTransactions = transactions.filter(
+    (transaction) =>
+      transaction.date.startsWith(currentMonthKey) &&
+      !transaction.isAdjustment,
   );
 
-  const totalIncome = currentMonthTransactions
-    .filter((transaction) => transaction.type === "income")
-    .reduce(
-      (total, transaction) => total + transaction.amount,
-      0,
-    );
+  const incomeTransactions = currentMonthTransactions.filter(
+    (transaction) => transaction.type === "income",
+  );
 
-  const totalExpense = currentMonthTransactions
-    .filter((transaction) => transaction.type === "expense")
-    .reduce(
-      (total, transaction) => total + transaction.amount,
-      0,
-    );
+  const expenseTransactions = currentMonthTransactions.filter(
+    (transaction) => transaction.type === "expense",
+  );
+
+  const totalIncome = incomeTransactions.reduce(
+    (total, transaction) => total + transaction.amount,
+    0,
+  );
+
+  const totalExpense = expenseTransactions.reduce(
+    (total, transaction) => total + transaction.amount,
+    0,
+  );
 
   const totalBalance = accounts.reduce(
     (total, account) => total + account.balance,
@@ -135,12 +142,7 @@ export default function Dashboard() {
               </p>
 
               <strong className="text-xl">
-                {
-                  currentMonthTransactions.filter(
-                    (transaction) =>
-                      transaction.type === "income",
-                  ).length
-                }
+                {incomeTransactions.length}
               </strong>
             </div>
           </div>
@@ -158,12 +160,7 @@ export default function Dashboard() {
               </p>
 
               <strong className="text-xl">
-                {
-                  currentMonthTransactions.filter(
-                    (transaction) =>
-                      transaction.type === "expense",
-                  ).length
-                }
+                {expenseTransactions.length}
               </strong>
             </div>
           </div>
