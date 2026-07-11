@@ -15,12 +15,14 @@ import {
 
 import Modal from "../components/Modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import AlertModal from "../components/AlertModal/AlertModal";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
 import { db } from "../database/database";
 
 import type { Goal } from "../types/Goal";
+import type { AlertType } from "../components/AlertModal/AlertModal";
 
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", {
@@ -47,12 +49,19 @@ function calculateProgress(goal: Goal) {
   return Math.min(Math.max(percentage, 0), 100);
 }
 
+type AlertData = {
+  title: string;
+  message: string;
+  type: AlertType;
+};
+
 export default function Goals() {
   const goals = useLiveQuery(
     () => db.goals.orderBy("createdAt").reverse().toArray(),
     [],
   );
 
+  const [alert, setAlert] = useState<AlertData>();
   const [goalModalOpen, setGoalModalOpen] = useState(false);
   const [progressModalOpen, setProgressModalOpen] =
     useState(false);
@@ -79,6 +88,18 @@ export default function Goals() {
     setTitle("");
     setTargetAmount("");
     setCurrentAmount("");
+  }
+
+  function showAlert(
+    title: string,
+    message: string,
+    type: AlertType = "warning",
+  ) {
+    setAlert({
+      title,
+      message,
+      type,
+    });
   }
 
   function openNewGoalModal() {
@@ -123,7 +144,10 @@ export default function Goals() {
     const normalizedTitle = title.trim();
 
     if (!normalizedTitle) {
-      window.alert("Informe o nome do objetivo.");
+      showAlert(
+        "Nome não informado",
+        "Informe o nome do objetivo.",
+      );
       return;
     }
 
@@ -137,7 +161,8 @@ export default function Goals() {
       Number.isNaN(numericTarget) ||
       numericTarget <= 0
     ) {
-      window.alert(
+      showAlert(
+        "Valor alvo inválido",
         "Digite um valor alvo maior que zero.",
       );
       return;
@@ -147,7 +172,8 @@ export default function Goals() {
       Number.isNaN(numericCurrent) ||
       numericCurrent < 0
     ) {
-      window.alert(
+      showAlert(
+        "Valor guardado inválido",
         "O valor guardado não pode ser negativo.",
       );
       return;
@@ -184,8 +210,10 @@ export default function Goals() {
     } catch (error) {
       console.error("Erro ao salvar objetivo:", error);
 
-      window.alert(
-        "Não foi possível salvar o objetivo.",
+      showAlert(
+        "Não foi possível salvar",
+        "Ocorreu um erro ao salvar o objetivo.",
+        "error",
       );
     } finally {
       setSaving(false);
@@ -208,7 +236,8 @@ export default function Goals() {
       Number.isNaN(numericAmount) ||
       numericAmount < 0
     ) {
-      window.alert(
+      showAlert(
+        "Valor inválido",
         "Digite um valor guardado válido.",
       );
       return;
@@ -232,8 +261,10 @@ export default function Goals() {
         error,
       );
 
-      window.alert(
-        "Não foi possível atualizar o progresso.",
+      showAlert(
+        "Não foi possível atualizar",
+        "Ocorreu um erro ao atualizar o progresso.",
+        "error",
       );
     } finally {
       setSaving(false);
@@ -251,8 +282,10 @@ export default function Goals() {
         error,
       );
 
-      window.alert(
-        "Não foi possível alterar o objetivo.",
+      showAlert(
+        "Não foi possível alterar",
+        "Ocorreu um erro ao alterar o objetivo.",
+        "error",
       );
     }
   }
@@ -269,8 +302,10 @@ export default function Goals() {
         error,
       );
 
-      window.alert(
-        "Não foi possível excluir o objetivo.",
+      showAlert(
+        "Não foi possível excluir",
+        "Ocorreu um erro ao excluir o objetivo.",
+        "error",
       );
     }
   }
@@ -575,6 +610,14 @@ export default function Goals() {
         confirmText="Excluir objetivo"
         onConfirm={confirmDeleteGoal}
         onCancel={() => setGoalToDelete(undefined)}
+      />
+
+      <AlertModal
+        open={Boolean(alert)}
+        title={alert?.title ?? ""}
+        message={alert?.message ?? ""}
+        type={alert?.type}
+        onClose={() => setAlert(undefined)}
       />
     </div>
   );

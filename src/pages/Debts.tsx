@@ -14,12 +14,20 @@ import {
 
 import Modal from "../components/Modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+import AlertModal from "../components/AlertModal/AlertModal";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
 import { db } from "../database/database";
 
 import type { Debt } from "../types/Debt";
+import type { AlertType } from "../components/AlertModal/AlertModal";
+
+type AlertData = {
+  title: string;
+  message: string;
+  type: AlertType;
+};
 
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", {
@@ -47,11 +55,16 @@ function parseCurrencyValue(value: string) {
 
 export default function Debts() {
   const debts = useLiveQuery(
-    () => db.debts.orderBy("createdAt").reverse().toArray(),
+    () =>
+      db.debts
+        .orderBy("createdAt")
+        .reverse()
+        .toArray(),
     [],
   );
 
   const [modalOpen, setModalOpen] = useState(false);
+
   const [editingDebtId, setEditingDebtId] =
     useState<number | null>(null);
 
@@ -63,14 +76,31 @@ export default function Debts() {
   const [amount, setAmount] = useState("");
   const [dueDate, setDueDate] = useState("");
 
+  const [alert, setAlert] = useState<AlertData>();
   const [saving, setSaving] = useState(false);
 
-  function openNewDebtModal() {
+  function showAlert(
+    title: string,
+    message: string,
+    type: AlertType = "warning",
+  ) {
+    setAlert({
+      title,
+      message,
+      type,
+    });
+  }
+
+  function resetForm() {
     setEditingDebtId(null);
     setCreditor("");
     setDescription("");
     setAmount("");
     setDueDate("");
+  }
+
+  function openNewDebtModal() {
+    resetForm();
     setModalOpen(true);
   }
 
@@ -87,11 +117,7 @@ export default function Debts() {
     if (saving) return;
 
     setModalOpen(false);
-    setEditingDebtId(null);
-    setCreditor("");
-    setDescription("");
-    setAmount("");
-    setDueDate("");
+    resetForm();
   }
 
   async function saveDebt(
@@ -100,23 +126,36 @@ export default function Debts() {
     event.preventDefault();
 
     if (!creditor.trim()) {
-      window.alert("Informe para quem você deve.");
+      showAlert(
+        "Credor não informado",
+        "Informe para quem você deve.",
+      );
+
       return;
     }
 
     if (!description.trim()) {
-      window.alert("Informe uma descrição para a dívida.");
+      showAlert(
+        "Descrição não informada",
+        "Informe uma descrição para a dívida.",
+      );
+
       return;
     }
 
-    const numericAmount = parseCurrencyValue(amount);
+    const numericAmount =
+      parseCurrencyValue(amount);
 
     if (
       amount.trim() === "" ||
       Number.isNaN(numericAmount) ||
       numericAmount <= 0
     ) {
-      window.alert("Digite um valor maior que zero.");
+      showAlert(
+        "Valor inválido",
+        "Digite um valor maior que zero.",
+      );
+
       return;
     }
 
@@ -144,10 +183,19 @@ export default function Debts() {
         await db.debts.add(newDebt);
       }
 
-      closeModal();
+      setModalOpen(false);
+      resetForm();
     } catch (error) {
-      console.error("Erro ao salvar dívida:", error);
-      window.alert("Não foi possível salvar a dívida.");
+      console.error(
+        "Erro ao salvar dívida:",
+        error,
+      );
+
+      showAlert(
+        "Não foi possível salvar",
+        "Ocorreu um erro ao salvar a dívida. Tente novamente.",
+        "error",
+      );
     } finally {
       setSaving(false);
     }
@@ -164,8 +212,10 @@ export default function Debts() {
         error,
       );
 
-      window.alert(
-        "Não foi possível alterar o status da dívida.",
+      showAlert(
+        "Não foi possível alterar",
+        "Ocorreu um erro ao alterar o status da dívida.",
+        "error",
       );
     }
   }
@@ -177,8 +227,18 @@ export default function Debts() {
       await db.debts.delete(debtToDelete.id);
       setDebtToDelete(undefined);
     } catch (error) {
-      console.error("Erro ao excluir dívida:", error);
-      window.alert("Não foi possível excluir a dívida.");
+      console.error(
+        "Erro ao excluir dívida:",
+        error,
+      );
+
+      setDebtToDelete(undefined);
+
+      showAlert(
+        "Não foi possível excluir",
+        "Ocorreu um erro ao excluir a dívida. Tente novamente.",
+        "error",
+      );
     }
   }
 
@@ -190,8 +250,13 @@ export default function Debts() {
     );
   }
 
-  const openDebts = debts.filter((debt) => !debt.paid);
-  const paidDebts = debts.filter((debt) => debt.paid);
+  const openDebts = debts.filter(
+    (debt) => !debt.paid,
+  );
+
+  const paidDebts = debts.filter(
+    (debt) => debt.paid,
+  );
 
   const totalOpen = openDebts.reduce(
     (total, debt) => total + debt.amount,
@@ -272,13 +337,27 @@ export default function Debts() {
           <p className="mt-2 text-slate-400">
             Cadastre suas dívidas para acompanhar o que ainda precisa quitar.
           </p>
+
+          <button
+            type="button"
+            onClick={openNewDebtModal}
+            className="mt-6 cursor-pointer rounded-xl bg-emerald-600 px-5 py-3 font-medium transition hover:bg-emerald-700"
+          >
+            Cadastrar primeira dívida
+          </button>
         </div>
       ) : (
         <div className="space-y-8">
           <section>
-            <h2 className="mb-4 text-xl font-semibold">
-              Em aberto
-            </h2>
+            <div className="mb-4">
+              <h2 className="text-xl font-semibold">
+                Em aberto
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-400">
+                Dívidas que ainda precisam ser pagas.
+              </p>
+            </div>
 
             {openDebts.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/60 p-8 text-center text-slate-400">
@@ -301,9 +380,15 @@ export default function Debts() {
 
           {paidDebts.length > 0 && (
             <section>
-              <h2 className="mb-4 text-xl font-semibold">
-                Quitadas
-              </h2>
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold">
+                  Quitadas
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-400">
+                  Dívidas que você já conseguiu pagar.
+                </p>
+              </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {paidDebts.map((debt) => (
@@ -330,7 +415,10 @@ export default function Debts() {
         }
         onClose={closeModal}
       >
-        <form onSubmit={saveDebt} className="space-y-5">
+        <form
+          onSubmit={saveDebt}
+          className="space-y-5"
+        >
           <Input
             label="Credor"
             type="text"
@@ -371,7 +459,10 @@ export default function Debts() {
               Cancelar
             </Button>
 
-            <Button type="submit" disabled={saving}>
+            <Button
+              type="submit"
+              disabled={saving}
+            >
               {saving
                 ? "Salvando..."
                 : editingDebtId === null
@@ -390,7 +481,17 @@ export default function Debts() {
         }" de ${debtToDelete?.creditor ?? ""}?`}
         confirmText="Excluir dívida"
         onConfirm={confirmDeleteDebt}
-        onCancel={() => setDebtToDelete(undefined)}
+        onCancel={() =>
+          setDebtToDelete(undefined)
+        }
+      />
+
+      <AlertModal
+        open={Boolean(alert)}
+        title={alert?.title ?? ""}
+        message={alert?.message ?? ""}
+        type={alert?.type}
+        onClose={() => setAlert(undefined)}
       />
     </div>
   );
@@ -432,6 +533,7 @@ function DebtCard({
           <button
             type="button"
             onClick={() => onEdit(debt)}
+            title="Editar dívida"
             className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
           >
             <Pencil size={18} />
@@ -440,6 +542,7 @@ function DebtCard({
           <button
             type="button"
             onClick={() => onDelete(debt)}
+            title="Excluir dívida"
             className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-red-950 hover:text-red-400"
           >
             <Trash2 size={18} />
@@ -464,9 +567,15 @@ function DebtCard({
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <p className="text-sm">
-          {formatDate(debt.dueDate)}
-        </p>
+        <div>
+          <p className="text-xs text-slate-500">
+            Vencimento
+          </p>
+
+          <p className="mt-1 text-sm">
+            {formatDate(debt.dueDate)}
+          </p>
+        </div>
 
         <span
           className={`rounded-full px-3 py-1 text-xs font-medium ${
