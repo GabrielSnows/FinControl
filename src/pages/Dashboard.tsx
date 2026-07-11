@@ -1,46 +1,152 @@
+import { useLiveQuery } from "dexie-react-hooks";
+import { Landmark, WalletCards } from "lucide-react";
+
 import Card from "../components/Card/Card";
+import { db } from "../database/database";
 
 export default function Dashboard() {
+  const accounts = useLiveQuery(
+    () => db.accounts.orderBy("createdAt").reverse().toArray(),
+    [],
+  );
+
+  function formatCurrency(value: number) {
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+
+  if (accounts === undefined) {
+    return (
+      <div className="flex min-h-64 items-center justify-center text-slate-400">
+        Carregando dashboard...
+      </div>
+    );
+  }
+
+  const totalBalance = accounts.reduce(
+    (total, account) => total + account.balance,
+    0,
+  );
+
   return (
     <div>
+      <div className="mb-8">
+        <h1 className="text-4xl font-bold">
+          Dashboard
+        </h1>
 
-      <h1 className="mb-8 text-4xl font-bold">
-        Dashboard
-      </h1>
+        <p className="mt-2 text-slate-400">
+          Acompanhe sua situação financeira.
+        </p>
+      </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
-
         <Card
           title="Saldo Total"
-          value="R$ 0,00"
+          value={formatCurrency(totalBalance)}
+          color={
+            totalBalance < 0
+              ? "text-red-400"
+              : "text-white"
+          }
         />
 
         <Card
-          title="Receitas"
-          value="R$ 0,00"
-          color="text-green-400"
+          title="Receitas do mês"
+          value={formatCurrency(0)}
+          color="text-emerald-400"
         />
 
         <Card
-          title="Despesas"
-          value="R$ 0,00"
+          title="Despesas do mês"
+          value={formatCurrency(0)}
           color="text-red-400"
         />
-
       </div>
 
-      <div className="mt-8 rounded-2xl border border-slate-700 bg-slate-800 p-6">
+      <section className="mt-8 rounded-2xl border border-slate-700 bg-slate-800 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-semibold">
+              Minhas contas
+            </h2>
 
-        <h2 className="text-xl font-semibold">
-          Contas
-        </h2>
+            <p className="mt-1 text-sm text-slate-400">
+              {accounts.length === 1
+                ? "1 conta cadastrada"
+                : `${accounts.length} contas cadastradas`}
+            </p>
+          </div>
 
-        <p className="mt-4 text-slate-400">
-          Nenhuma conta cadastrada.
-        </p>
+          <div className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-slate-300">
+            <WalletCards size={18} />
 
-      </div>
+            <span>
+              Total: {formatCurrency(totalBalance)}
+            </span>
+          </div>
+        </div>
 
+        {accounts.length === 0 ? (
+          <div className="mt-6 rounded-xl border border-dashed border-slate-700 px-6 py-10 text-center">
+            <Landmark
+              size={42}
+              className="mx-auto text-slate-500"
+            />
+
+            <h3 className="mt-4 font-semibold">
+              Nenhuma conta cadastrada
+            </h3>
+
+            <p className="mt-2 text-sm text-slate-400">
+              Acesse a página Contas para cadastrar sua primeira conta.
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 divide-y divide-slate-700">
+            {accounts.map((account) => (
+              <div
+                key={account.id}
+                className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+              >
+                <div className="flex min-w-0 items-center gap-4">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-2">
+                    <img
+                      src={account.image}
+                      alt={account.name}
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
+
+                  <div className="min-w-0">
+                    <h3 className="truncate font-medium">
+                      {account.name}
+                    </h3>
+
+                    <p className="mt-1 text-sm text-slate-400">
+                      {account.type === "bank"
+                        ? "Banco"
+                        : "Carteira"}
+                    </p>
+                  </div>
+                </div>
+
+                <strong
+                  className={
+                    account.balance < 0
+                      ? "shrink-0 text-red-400"
+                      : "shrink-0 text-white"
+                  }
+                >
+                  {formatCurrency(account.balance)}
+                </strong>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
