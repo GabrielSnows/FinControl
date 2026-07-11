@@ -1,20 +1,22 @@
 import {
-  House,
-  Wallet,
+  CircleDollarSign,
   CreditCard,
-  Target,
+  House,
   Settings,
+  Target,
+  Wallet,
 } from "lucide-react";
 
 import { NavLink } from "react-router-dom";
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 bg-slate-950 border-r border-slate-800 p-6">
-      <h1 className="text-2xl font-bold mb-10">FinControl</h1>
+    <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-950 p-6">
+      <h1 className="mb-10 text-2xl font-bold">
+        FinControl
+      </h1>
 
       <nav className="space-y-2">
-
         <MenuItem
           icon={<House size={20} />}
           text="Dashboard"
@@ -34,6 +36,12 @@ export default function Sidebar() {
         />
 
         <MenuItem
+          icon={<CircleDollarSign size={20} />}
+          text="Dívidas"
+          to="/debts"
+        />
+
+        <MenuItem
           icon={<Target size={20} />}
           text="Objetivos"
           to="/goals"
@@ -44,7 +52,6 @@ export default function Sidebar() {
           text="Configurações"
           to="/settings"
         />
-
       </nav>
     </aside>
   );
@@ -56,15 +63,19 @@ type MenuItemProps = {
   to: string;
 };
 
-function MenuItem({ icon, text, to }: MenuItemProps) {
+function MenuItem({
+  icon,
+  text,
+  to,
+}: MenuItemProps) {
   return (
     <NavLink
       to={to}
       className={({ isActive }) =>
-        `flex w-full items-center gap-3 rounded-xl p-3 transition ${
+        `flex w-full cursor-pointer items-center gap-3 rounded-xl p-3 transition ${
           isActive
-            ? "bg-blue-600 text-white"
-            : "hover:bg-slate-800"
+            ? "bg-emerald-600 text-white"
+            : "text-slate-300 hover:bg-slate-800 hover:text-white"
         }`
       }
     >
