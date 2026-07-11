@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 
 import Modal from "../components/Modal/Modal";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
@@ -53,6 +54,9 @@ export default function Debts() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDebtId, setEditingDebtId] =
     useState<number | null>(null);
+
+  const [debtToDelete, setDebtToDelete] =
+    useState<Debt>();
 
   const [creditor, setCreditor] = useState("");
   const [description, setDescription] = useState("");
@@ -140,18 +144,10 @@ export default function Debts() {
         await db.debts.add(newDebt);
       }
 
-      setModalOpen(false);
-      setEditingDebtId(null);
-      setCreditor("");
-      setDescription("");
-      setAmount("");
-      setDueDate("");
+      closeModal();
     } catch (error) {
       console.error("Erro ao salvar dívida:", error);
-
-      window.alert(
-        "Não foi possível salvar a dívida. Tente novamente.",
-      );
+      window.alert("Não foi possível salvar a dívida.");
     } finally {
       setSaving(false);
     }
@@ -174,21 +170,15 @@ export default function Debts() {
     }
   }
 
-  async function deleteDebt(debtId: number) {
-    const confirmed = window.confirm(
-      "Tem certeza de que deseja excluir esta dívida?",
-    );
-
-    if (!confirmed) return;
+  async function confirmDeleteDebt() {
+    if (!debtToDelete) return;
 
     try {
-      await db.debts.delete(debtId);
+      await db.debts.delete(debtToDelete.id);
+      setDebtToDelete(undefined);
     } catch (error) {
       console.error("Erro ao excluir dívida:", error);
-
-      window.alert(
-        "Não foi possível excluir a dívida.",
-      );
+      window.alert("Não foi possível excluir a dívida.");
     }
   }
 
@@ -282,27 +272,13 @@ export default function Debts() {
           <p className="mt-2 text-slate-400">
             Cadastre suas dívidas para acompanhar o que ainda precisa quitar.
           </p>
-
-          <button
-            type="button"
-            onClick={openNewDebtModal}
-            className="mt-6 cursor-pointer rounded-xl bg-emerald-600 px-5 py-3 font-medium transition hover:bg-emerald-700"
-          >
-            Cadastrar primeira dívida
-          </button>
         </div>
       ) : (
         <div className="space-y-8">
           <section>
-            <div className="mb-4">
-              <h2 className="text-xl font-semibold">
-                Em aberto
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-400">
-                Dívidas que ainda precisam ser pagas.
-              </p>
-            </div>
+            <h2 className="mb-4 text-xl font-semibold">
+              Em aberto
+            </h2>
 
             {openDebts.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/60 p-8 text-center text-slate-400">
@@ -316,7 +292,7 @@ export default function Debts() {
                     debt={debt}
                     onEdit={openEditDebtModal}
                     onToggleStatus={toggleDebtStatus}
-                    onDelete={deleteDebt}
+                    onDelete={setDebtToDelete}
                   />
                 ))}
               </div>
@@ -325,15 +301,9 @@ export default function Debts() {
 
           {paidDebts.length > 0 && (
             <section>
-              <div className="mb-4">
-                <h2 className="text-xl font-semibold">
-                  Quitadas
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-400">
-                  Dívidas que você já conseguiu pagar.
-                </p>
-              </div>
+              <h2 className="mb-4 text-xl font-semibold">
+                Quitadas
+              </h2>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {paidDebts.map((debt) => (
@@ -342,7 +312,7 @@ export default function Debts() {
                     debt={debt}
                     onEdit={openEditDebtModal}
                     onToggleStatus={toggleDebtStatus}
-                    onDelete={deleteDebt}
+                    onDelete={setDebtToDelete}
                   />
                 ))}
               </div>
@@ -360,10 +330,7 @@ export default function Debts() {
         }
         onClose={closeModal}
       >
-        <form
-          onSubmit={saveDebt}
-          className="space-y-5"
-        >
+        <form onSubmit={saveDebt} className="space-y-5">
           <Input
             label="Credor"
             type="text"
@@ -404,10 +371,7 @@ export default function Debts() {
               Cancelar
             </Button>
 
-            <Button
-              type="submit"
-              disabled={saving}
-            >
+            <Button type="submit" disabled={saving}>
               {saving
                 ? "Salvando..."
                 : editingDebtId === null
@@ -417,6 +381,17 @@ export default function Debts() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal
+        open={Boolean(debtToDelete)}
+        title="Excluir dívida"
+        message={`Tem certeza de que deseja excluir a dívida "${
+          debtToDelete?.description ?? ""
+        }" de ${debtToDelete?.creditor ?? ""}?`}
+        confirmText="Excluir dívida"
+        onConfirm={confirmDeleteDebt}
+        onCancel={() => setDebtToDelete(undefined)}
+      />
     </div>
   );
 }
@@ -425,7 +400,7 @@ type DebtCardProps = {
   debt: Debt;
   onEdit: (debt: Debt) => void;
   onToggleStatus: (debt: Debt) => void;
-  onDelete: (debtId: number) => void;
+  onDelete: (debt: Debt) => void;
 };
 
 function DebtCard({
@@ -457,8 +432,6 @@ function DebtCard({
           <button
             type="button"
             onClick={() => onEdit(debt)}
-            title="Editar dívida"
-            aria-label={`Editar dívida de ${debt.creditor}`}
             className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
           >
             <Pencil size={18} />
@@ -466,9 +439,7 @@ function DebtCard({
 
           <button
             type="button"
-            onClick={() => onDelete(debt.id)}
-            title="Excluir dívida"
-            aria-label={`Excluir dívida de ${debt.creditor}`}
+            onClick={() => onDelete(debt)}
             className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-red-950 hover:text-red-400"
           >
             <Trash2 size={18} />
@@ -493,15 +464,9 @@ function DebtCard({
       </div>
 
       <div className="mt-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs text-slate-500">
-            Vencimento
-          </p>
-
-          <p className="mt-1 text-sm">
-            {formatDate(debt.dueDate)}
-          </p>
-        </div>
+        <p className="text-sm">
+          {formatDate(debt.dueDate)}
+        </p>
 
         <span
           className={`rounded-full px-3 py-1 text-xs font-medium ${

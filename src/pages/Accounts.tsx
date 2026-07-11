@@ -13,6 +13,7 @@ import {
 
 import BankSelect from "../components/BankSelect/BankSelect";
 import Modal from "../components/Modal/Modal";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
@@ -67,8 +68,10 @@ export default function Accounts() {
   const [adjustingAccount, setAdjustingAccount] =
     useState<Account>();
 
-  const [adjustedBalance, setAdjustedBalance] = useState("");
+  const [accountToDelete, setAccountToDelete] =
+    useState<Account>();
 
+  const [adjustedBalance, setAdjustedBalance] = useState("");
   const [saving, setSaving] = useState(false);
 
   function openNewAccountModal() {
@@ -242,10 +245,10 @@ export default function Accounts() {
     }
   }
 
-  async function deleteAccount(accountId: number) {
+  async function requestDeleteAccount(account: Account) {
     const accountTransactions = await db.transactions
       .where("accountId")
-      .equals(accountId)
+      .equals(account.id)
       .count();
 
     if (accountTransactions > 0) {
@@ -256,14 +259,15 @@ export default function Accounts() {
       return;
     }
 
-    const confirmed = window.confirm(
-      "Tem certeza de que deseja excluir esta conta?",
-    );
+    setAccountToDelete(account);
+  }
 
-    if (!confirmed) return;
+  async function confirmDeleteAccount() {
+    if (!accountToDelete) return;
 
     try {
-      await db.accounts.delete(accountId);
+      await db.accounts.delete(accountToDelete.id);
+      setAccountToDelete(undefined);
     } catch (error) {
       console.error("Erro ao excluir conta:", error);
 
@@ -385,7 +389,7 @@ export default function Accounts() {
                   <button
                     type="button"
                     onClick={() =>
-                      deleteAccount(account.id)
+                      requestDeleteAccount(account)
                     }
                     title="Excluir conta"
                     aria-label={`Excluir ${account.name}`}
@@ -545,6 +549,17 @@ export default function Accounts() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal
+        open={Boolean(accountToDelete)}
+        title="Excluir conta"
+        message={`Tem certeza de que deseja excluir a conta ${
+          accountToDelete?.name ?? ""
+        }?`}
+        confirmText="Excluir conta"
+        onConfirm={confirmDeleteAccount}
+        onCancel={() => setAccountToDelete(undefined)}
+      />
     </div>
   );
 }

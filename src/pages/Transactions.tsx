@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import TransactionModal from "../components/TransactionModal/TransactionModal";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 
 import { db } from "../database/database";
 
@@ -41,6 +42,9 @@ export default function Transactions() {
     useState<TransactionType>("expense");
 
   const [editingTransaction, setEditingTransaction] =
+    useState<Transaction>();
+
+  const [transactionToDelete, setTransactionToDelete] =
     useState<Transaction>();
 
   const [saving, setSaving] = useState(false);
@@ -89,9 +93,7 @@ export default function Transactions() {
         db.transactions,
         async () => {
           const selectedAccount =
-            await db.accounts.get(
-              formData.accountId,
-            );
+            await db.accounts.get(formData.accountId);
 
           if (!selectedAccount) {
             throw new Error(
@@ -116,18 +118,12 @@ export default function Transactions() {
               editingTransaction.amount,
             );
 
-            await db.accounts.update(
-              oldAccount.id,
-              {
-                balance:
-                  oldAccount.balance - oldImpact,
-              },
-            );
+            await db.accounts.update(oldAccount.id, {
+              balance: oldAccount.balance - oldImpact,
+            });
 
             const updatedDestinationAccount =
-              await db.accounts.get(
-                formData.accountId,
-              );
+              await db.accounts.get(formData.accountId);
 
             if (!updatedDestinationAccount) {
               throw new Error(
@@ -155,8 +151,7 @@ export default function Transactions() {
                 accountId: formData.accountId,
                 type: formData.type,
                 category: formData.category,
-                description:
-                  formData.description,
+                description: formData.description,
                 amount: formData.amount,
                 date: formData.date,
               },
@@ -190,9 +185,7 @@ export default function Transactions() {
             createdAt: new Date().toISOString(),
           };
 
-          await db.transactions.add(
-            newTransaction,
-          );
+          await db.transactions.add(newTransaction);
         },
       );
 
@@ -211,14 +204,8 @@ export default function Transactions() {
     }
   }
 
-  async function deleteTransaction(
-    transaction: Transaction,
-  ) {
-    const confirmed = window.confirm(
-      "Tem certeza de que deseja excluir esta movimentação?",
-    );
-
-    if (!confirmed) return;
+  async function confirmDeleteTransaction() {
+    if (!transactionToDelete) return;
 
     try {
       await db.transaction(
@@ -227,7 +214,7 @@ export default function Transactions() {
         db.transactions,
         async () => {
           const account = await db.accounts.get(
-            transaction.accountId,
+            transactionToDelete.accountId,
           );
 
           if (!account) {
@@ -237,23 +224,21 @@ export default function Transactions() {
           }
 
           const impact = getBalanceImpact(
-            transaction.type,
-            transaction.amount,
+            transactionToDelete.type,
+            transactionToDelete.amount,
           );
 
-          await db.accounts.update(
-            account.id,
-            {
-              balance:
-                account.balance - impact,
-            },
-          );
+          await db.accounts.update(account.id, {
+            balance: account.balance - impact,
+          });
 
           await db.transactions.delete(
-            transaction.id,
+            transactionToDelete.id,
           );
         },
       );
+
+      setTransactionToDelete(undefined);
     } catch (error) {
       console.error(
         "Erro ao excluir movimentação:",
@@ -280,9 +265,7 @@ export default function Transactions() {
     return `${day}/${month}/${year}`;
   }
 
-  function getAccountName(
-    accountId: number,
-  ) {
+  function getAccountName(accountId: number) {
     return (
       accounts?.find(
         (account) => account.id === accountId,
@@ -310,8 +293,7 @@ export default function Transactions() {
           </h1>
 
           <p className="mt-2 text-slate-400">
-            Registre todas as suas receitas e
-            despesas.
+            Registre todas as suas receitas e despesas.
           </p>
         </div>
 
@@ -406,18 +388,14 @@ export default function Transactions() {
                   {transaction.type === "income"
                     ? "+"
                     : "-"}
-                  {formatCurrency(
-                    transaction.amount,
-                  )}
+                  {formatCurrency(transaction.amount)}
                 </strong>
 
                 <div className="flex gap-1">
                   <button
                     type="button"
                     onClick={() =>
-                      openEditTransaction(
-                        transaction,
-                      )
+                      openEditTransaction(transaction)
                     }
                     aria-label="Editar movimentação"
                     className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
@@ -428,9 +406,7 @@ export default function Transactions() {
                   <button
                     type="button"
                     onClick={() =>
-                      deleteTransaction(
-                        transaction,
-                      )
+                      setTransactionToDelete(transaction)
                     }
                     aria-label="Excluir movimentação"
                     className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-red-950 hover:text-red-400"
@@ -452,6 +428,21 @@ export default function Transactions() {
         saving={saving}
         onClose={closeModal}
         onSave={saveTransaction}
+      />
+
+      <ConfirmModal
+        open={Boolean(transactionToDelete)}
+        title="Excluir movimentação"
+        message={`Tem certeza de que deseja excluir "${
+          transactionToDelete?.description ||
+          transactionToDelete?.category ||
+          ""
+        }"? O saldo da conta será corrigido automaticamente.`}
+        confirmText="Excluir movimentação"
+        onConfirm={confirmDeleteTransaction}
+        onCancel={() =>
+          setTransactionToDelete(undefined)
+        }
       />
     </div>
   );

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import Modal from "../components/Modal/Modal";
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
@@ -61,6 +62,9 @@ export default function Goals() {
 
   const [progressGoal, setProgressGoal] =
     useState<Goal>();
+
+  const [goalToDelete, setGoalToDelete] =
+  useState<Goal>();
 
   const [title, setTitle] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
@@ -253,15 +257,12 @@ export default function Goals() {
     }
   }
 
-  async function deleteGoal(goalId: number) {
-    const confirmed = window.confirm(
-      "Tem certeza de que deseja excluir este objetivo?",
-    );
-
-    if (!confirmed) return;
+  async function confirmDeleteGoal() {
+    if (!goalToDelete) return;
 
     try {
-      await db.goals.delete(goalId);
+      await db.goals.delete(goalToDelete.id);
+      setGoalToDelete(undefined);
     } catch (error) {
       console.error(
         "Erro ao excluir objetivo:",
@@ -409,7 +410,7 @@ export default function Goals() {
                     onEdit={openEditGoalModal}
                     onUpdateProgress={openProgressModal}
                     onToggleStatus={toggleGoalStatus}
-                    onDelete={deleteGoal}
+                    onDelete={setGoalToDelete}
                   />
                 ))}
               </div>
@@ -436,7 +437,7 @@ export default function Goals() {
                     onEdit={openEditGoalModal}
                     onUpdateProgress={openProgressModal}
                     onToggleStatus={toggleGoalStatus}
-                    onDelete={deleteGoal}
+                    onDelete={setGoalToDelete}
                   />
                 ))}
               </div>
@@ -564,6 +565,17 @@ export default function Goals() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmModal
+        open={Boolean(goalToDelete)}
+        title="Excluir objetivo"
+        message={`Tem certeza de que deseja excluir o objetivo "${
+          goalToDelete?.title ?? ""
+        }"?`}
+        confirmText="Excluir objetivo"
+        onConfirm={confirmDeleteGoal}
+        onCancel={() => setGoalToDelete(undefined)}
+      />
     </div>
   );
 }
@@ -573,7 +585,7 @@ type GoalCardProps = {
   onEdit: (goal: Goal) => void;
   onUpdateProgress: (goal: Goal) => void;
   onToggleStatus: (goal: Goal) => void;
-  onDelete: (goalId: number) => void;
+  onDelete: (goal: Goal) => void;
 };
 
 function GoalCard({
@@ -624,7 +636,7 @@ function GoalCard({
 
           <button
             type="button"
-            onClick={() => onDelete(goal.id)}
+            onClick={() => onDelete(goal)}
             title="Excluir objetivo"
             aria-label={`Excluir ${goal.title}`}
             className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-red-950 hover:text-red-400"
