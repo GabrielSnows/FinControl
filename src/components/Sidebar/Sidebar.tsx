@@ -11,7 +11,7 @@ import { NavLink } from "react-router-dom";
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 shrink-0 border-r border-slate-800 bg-slate-950 p-6">
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-slate-800 bg-slate-950 p-6 md:block">
       <h1 className="mb-10 text-2xl font-bold">
         FinControl
       </h1>
@@ -71,6 +71,7 @@ function MenuItem({
   return (
     <NavLink
       to={to}
+      end={to === "/"}
       className={({ isActive }) =>
         `flex w-full cursor-pointer items-center gap-3 rounded-xl p-3 transition ${
           isActive
@@ -80,6 +81,7 @@ function MenuItem({
       }
     >
       {icon}
+
       <span>{text}</span>
     </NavLink>
   );

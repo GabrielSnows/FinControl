@@ -345,7 +345,7 @@ export default function Goals() {
     <div>
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold">
+          <h1 className="text-3xl font-bold sm:text-4xl">
             Objetivos
           </h1>
 

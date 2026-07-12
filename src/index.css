@@ -8,8 +8,31 @@ body,
   min-height: 100%;
 }
 
+html {
+  background: #0f172a;
+}
+
 body {
+  min-width: 320px;
+  overflow-x: hidden;
   background: #0f172a;
   color: white;
   font-family: Inter, system-ui, sans-serif;
+}
+
+button,
+a,
+input,
+select {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
+
+input,
+select {
+  font-size: 16px;
 }
