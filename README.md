@@ -1,75 +1,68 @@
-# React + TypeScript + Vite
+# FinControl
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **Clareza para decidir. Tranquilidade para crescer.**
 
-Currently, two official plugins are available:
+FinControl é um aplicativo financeiro pessoal desenvolvido para ajudar
+pessoas a tomarem decisões financeiras melhores, de forma simples,
+elegante e sem complicação.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Objetivo
 
-## React Compiler
+Mais do que registrar receitas e despesas, o FinControl busca oferecer
+uma visão clara da vida financeira, reduzindo a ansiedade e incentivando
+decisões conscientes.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Funcionalidades atuais
 
-## Expanding the ESLint configuration
+-   Dashboard financeiro
+-   Contas
+-   Movimentações
+-   Objetivos financeiros
+-   Dívidas
+-   Backup e restauração
+-   PWA (instalável)
+-   Armazenamento local com IndexedDB
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Tecnologias
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+-   React
+-   TypeScript
+-   Vite
+-   Tailwind CSS
+-   Dexie (IndexedDB)
+-   PWA
+-   Vercel
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Roadmap
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Versão 1.0
 
-```
+-   Aplicação funcional
+-   PWA
+-   Backup
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Versão 2.0
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+-   Nova identidade visual
+-   Sincronização entre dispositivos
+-   Cartões de crédito
+-   Dívidas parceladas
+-   Melhor experiência mobile
+-   Design System próprio
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Versão 3.0
 
-```
+-   Assistente financeiro com IA
+-   Recomendações inteligentes
+-   Insights financeiros personalizados
+
+## Projeto online
+
+https://fin-control-kappa.vercel.app/
+
+## Filosofia
+
+O FinControl não foi criado apenas para controlar dinheiro.
+
+Ele foi criado para ajudar pessoas a conquistarem tranquilidade
+financeira.
