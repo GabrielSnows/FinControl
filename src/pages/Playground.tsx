@@ -14,6 +14,15 @@ import {
   WalletCards,
 } from "lucide-react";
 
+import {
+  FinCard,
+  FinCardContent,
+  FinCardDescription,
+  FinCardFooter,
+  FinCardHeader,
+  FinCardTitle,
+} from "../finui/Card";
+
 import { useState } from "react";
 
 import { FinButton } from "../finui/Button";
@@ -88,7 +97,7 @@ export default function Playground() {
 
   return (
     <div className="min-h-screen bg-[#09090b] px-4 py-8 text-zinc-50 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto w-full max-w-6xl overflow-x-hidden">
         <header className="mb-10">
           <p className="text-sm font-medium text-zinc-500">
             FinUI
@@ -104,7 +113,7 @@ export default function Playground() {
           </p>
         </header>
 
-        <div className="space-y-10">
+        <div className="w-full space-y-10">
           <ComponentGroup
             title="FinButton"
             description="Ações discretas, leves e consistentes."
@@ -353,6 +362,132 @@ export default function Playground() {
               </div>
             </PlaygroundSection>
           </ComponentGroup>
+
+          <ComponentGroup
+            title="FinCard"
+            description="Superfícies leves para organizar informações sem pesar a interface."
+          >
+            <PlaygroundSection
+              title="Cards financeiros"
+              description="Exemplos de uso no Dashboard e nas telas principais."
+            >
+              <div className="grid w-full gap-5 md:grid-cols-2 xl:grid-cols-3">
+                <FinCard>
+                  <FinCardHeader>
+                    <FinCardDescription>
+                      Saldo disponível
+                    </FinCardDescription>
+                  </FinCardHeader>
+
+                  <FinCardContent>
+                    <strong className="block text-3xl font-semibold tracking-tight text-zinc-50">
+                      R$ 4.280,00
+                    </strong>
+
+                    <p className="mt-2 text-sm text-zinc-500">
+                      Atualizado hoje
+                    </p>
+                  </FinCardContent>
+                </FinCard>
+
+                <FinCard variant="subtle">
+                  <FinCardHeader>
+                    <FinCardTitle>
+                      Resumo do mês
+                    </FinCardTitle>
+
+                    <FinCardDescription>
+                      Receitas e despesas registradas.
+                    </FinCardDescription>
+                  </FinCardHeader>
+
+                  <FinCardContent>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-sm text-zinc-500">
+                          Receitas
+                        </span>
+
+                        <strong className="font-medium text-zinc-100">
+                          R$ 3.200,00
+                        </strong>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-4">
+                        <span className="text-sm text-zinc-500">
+                          Despesas
+                        </span>
+
+                        <strong className="font-medium text-zinc-100">
+                          R$ 1.870,00
+                        </strong>
+                      </div>
+                    </div>
+                  </FinCardContent>
+                </FinCard>
+
+                <FinCard variant="interactive">
+                  <FinCardHeader>
+                    <FinCardTitle>
+                      Inter PJ
+                    </FinCardTitle>
+
+                    <FinCardDescription>
+                      Conta empresarial
+                    </FinCardDescription>
+                  </FinCardHeader>
+
+                  <FinCardContent>
+                    <strong className="block text-2xl font-semibold text-zinc-50">
+                      R$ 1.250,00
+                    </strong>
+                  </FinCardContent>
+
+                  <FinCardFooter>
+                    <span className="text-sm text-zinc-500">
+                      Clique para visualizar
+                    </span>
+                  </FinCardFooter>
+                </FinCard>
+              </div>
+            </PlaygroundSection>
+
+            <PlaygroundSection
+              title="Com ações"
+              description="Cards também podem receber botões e controles no rodapé."
+            >
+              <div className="w-full max-w-xl">
+                <FinCard>
+                  <FinCardHeader>
+                    <FinCardTitle>
+                      Backup dos dados
+                    </FinCardTitle>
+
+                    <FinCardDescription>
+                      Exporte uma cópia das suas informações.
+                    </FinCardDescription>
+                  </FinCardHeader>
+
+                  <FinCardContent>
+                    <p className="text-sm leading-6 text-zinc-400">
+                      O arquivo inclui contas, movimentações,
+                      dívidas e objetivos.
+                    </p>
+                  </FinCardContent>
+
+                  <FinCardFooter className="justify-end">
+                    <FinButton variant="secondary">
+                      Cancelar
+                    </FinButton>
+
+                    <FinButton>
+                      Exportar backup
+                    </FinButton>
+                  </FinCardFooter>
+                </FinCard>
+              </div>
+            </PlaygroundSection>
+          </ComponentGroup>
         </div>
       </div>
     </div>
@@ -412,7 +547,7 @@ function PlaygroundSection({
         </p>
       </div>
 
-      <div className="flex flex-wrap items-start gap-3">
+      <div className="flex w-full flex-wrap items-start gap-3 overflow-hidden">
         {children}
       </div>
     </section>
