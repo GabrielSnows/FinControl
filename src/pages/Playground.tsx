@@ -1,9 +1,15 @@
 import {
   ArrowRight,
+  Building2,
+  Car,
   Download,
+  Dumbbell,
+  GraduationCap,
+  House,
   Mail,
   Plus,
   Search,
+  ShoppingCart,
   Trash2,
   WalletCards,
 } from "lucide-react";
@@ -13,10 +19,71 @@ import { useState } from "react";
 import { FinButton } from "../finui/Button";
 import { FinInput } from "../finui/Input";
 import { FinDatePicker } from "../finui/DatePicker";
+import { FinSelect } from "../finui/Select";
+
+import type { FinSelectOption } from "../finui/Select";
+
+const accountOptions: FinSelectOption[] = [
+  {
+    value: "inter-pf",
+    label: "Inter PF",
+    description: "Conta pessoal",
+    icon: <WalletCards />,
+  },
+  {
+    value: "inter-pj",
+    label: "Inter PJ",
+    description: "Conta da empresa",
+    icon: <Building2 />,
+  },
+  {
+    value: "carteira",
+    label: "Carteira",
+    description: "Dinheiro em espécie",
+    icon: <WalletCards />,
+  },
+];
+
+const categoryOptions: FinSelectOption[] = [
+  {
+    value: "mercado",
+    label: "Mercado",
+    icon: <ShoppingCart />,
+  },
+  {
+    value: "carro",
+    label: "Carro",
+    icon: <Car />,
+  },
+  {
+    value: "casa",
+    label: "Casa",
+    icon: <House />,
+  },
+  {
+    value: "academia",
+    label: "Academia",
+    icon: <Dumbbell />,
+  },
+  {
+    value: "estudos",
+    label: "Estudos",
+    icon: <GraduationCap />,
+  },
+];
 
 export default function Playground() {
 
   const [selectedDate, setSelectedDate] =
+  useState("");
+
+  const [selectedAccount, setSelectedAccount] =
+  useState("");
+
+  const [selectedCategory, setSelectedCategory] =
+  useState("");
+
+  const [selectedSimpleCategory, setSelectedSimpleCategory] =
   useState("");
 
   return (
@@ -214,6 +281,75 @@ export default function Playground() {
                   aria-label="Campo sem label"
                   placeholder="Campo sem label visível"
                 />
+              </div>
+            </PlaygroundSection>
+          </ComponentGroup>
+
+          <ComponentGroup
+            title="FinSelect"
+            description="Seleção personalizada com pesquisa e navegação pelo teclado."
+          >
+            <PlaygroundSection
+              title="Seleção de conta"
+              description="Opções com ícone, descrição e pesquisa."
+            >
+              <div className="grid w-full gap-5 md:grid-cols-2">
+                <FinSelect
+                  label="Conta"
+                  value={selectedAccount}
+                  options={accountOptions}
+                  onChange={(newValue) =>
+                    setSelectedAccount(newValue)
+                  }
+                  placeholder="Selecione uma conta"
+                  searchPlaceholder="Pesquisar conta..."
+                  helperText="Escolha a conta afetada pela movimentação."
+                />
+
+                <FinSelect
+                  label="Categoria"
+                  value={selectedCategory}
+                  options={categoryOptions}
+                  onChange={(newValue) =>
+                    setSelectedCategory(newValue)
+                  }
+                  placeholder="Selecione uma categoria"
+                  searchPlaceholder="Pesquisar categoria..."
+                />
+              </div>
+            </PlaygroundSection>
+
+            <PlaygroundSection
+              title="Estados"
+              description="Erro, desabilitado e sem pesquisa."
+            >
+              <div className="grid w-full gap-5 md:grid-cols-2">
+                <FinSelect
+                  label="Categoria obrigatória"
+                  value=""
+                  options={categoryOptions}
+                  onChange={() => undefined}
+                  placeholder="Selecione uma categoria"
+                  error="Selecione uma categoria."
+                />
+
+                <FinSelect
+                  label="Campo desabilitado"
+                  value="inter-pf"
+                  options={accountOptions}
+                  onChange={() => undefined}
+                  disabled
+                />
+
+                <FinSelect
+                  label="Lista simples"
+                  value={selectedSimpleCategory}
+                  options={categoryOptions}
+                  onChange={(newValue) =>
+                    setSelectedSimpleCategory(newValue)
+                  }
+                  searchable={false}
+                />              
               </div>
             </PlaygroundSection>
           </ComponentGroup>
