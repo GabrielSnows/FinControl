@@ -1,0 +1,157 @@
+@keyframes fin-date-open {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.fin-date-calendar-root {
+  --rdp-accent-color: #09090b;
+  --rdp-accent-background-color: #e4e4e7;
+
+  --rdp-animation_duration: 180ms;
+  --rdp-animation_timing: ease-out;
+
+  --rdp-day-width: 38px;
+  --rdp-day-height: 38px;
+
+  --rdp-day_button-width: 34px;
+  --rdp-day_button-height: 34px;
+
+  --rdp-day_button-border-radius: 9px;
+  --rdp-selected-border: 0;
+
+  --rdp-today-color: #fafafa;
+  --rdp-outside-opacity: 0.3;
+  --rdp-disabled-opacity: 0.25;
+  --rdp-weekday-opacity: 1;
+
+  margin: 0;
+  color: #fafafa;
+  font-family:
+    Geist,
+    Inter,
+    system-ui,
+    sans-serif;
+}
+
+.fin-date-calendar-root button {
+  cursor: pointer;
+}
+
+.fin-date-calendar-root button:disabled {
+  cursor: not-allowed;
+}
+
+.fin-date-calendar-root .rdp-month_caption {
+  color: #fafafa;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.fin-date-calendar-root .rdp-weekday {
+  color: #71717a;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.fin-date-calendar-root .rdp-day_button {
+  color: #d4d4d8;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition:
+    color 150ms ease-out,
+    background-color 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.fin-date-calendar-root
+  .rdp-day_button:hover:not(:disabled) {
+  background: #27272a;
+  color: #fafafa;
+}
+
+.fin-date-calendar-root
+  .rdp-day_button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.fin-date-selected
+  .rdp-day_button {
+  background: #e4e4e7;
+  color: #09090b;
+}
+
+.fin-date-selected
+  .rdp-day_button:hover {
+  background: #d4d4d8;
+  color: #09090b;
+}
+
+.fin-date-today:not(.fin-date-selected)
+  .rdp-day_button {
+  box-shadow: inset 0 0 0 1px #52525b;
+  color: #fafafa;
+}
+
+.fin-date-outside
+  .rdp-day_button {
+  color: #52525b;
+}
+
+.fin-date-disabled
+  .rdp-day_button {
+  color: #3f3f46;
+}
+
+.fin-date-chevron {
+  fill: #a1a1aa;
+  width: 16px;
+  height: 16px;
+}
+
+.fin-date-calendar-root
+  .rdp-button_previous,
+.fin-date-calendar-root
+  .rdp-button_next {
+  border-radius: 9px;
+  color: #a1a1aa;
+  transition:
+    color 150ms ease-out,
+    background-color 150ms ease-out;
+}
+
+.fin-date-calendar-root
+  .rdp-button_previous:hover,
+.fin-date-calendar-root
+  .rdp-button_next:hover {
+  background: #27272a;
+  color: #fafafa;
+}
+
+.fin-date-calendar-root
+  .rdp-button_previous:focus-visible,
+.fin-date-calendar-root
+  .rdp-button_next:focus-visible,
+.fin-date-calendar-root
+  .rdp-day_button:focus-visible {
+  outline: 2px solid #71717a;
+  outline-offset: 2px;
+}
+
+@media (max-width: 420px) {
+  .fin-date-calendar-root {
+    --rdp-day-width: 36px;
+    --rdp-day-height: 36px;
+
+    --rdp-day_button-width: 32px;
+    --rdp-day_button-height: 32px;
+  }
+}

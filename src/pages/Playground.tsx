@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  CalendarDays,
   Download,
   Mail,
   Plus,
@@ -9,10 +8,17 @@ import {
   WalletCards,
 } from "lucide-react";
 
+import { useState } from "react";
+
 import { FinButton } from "../finui/Button";
 import { FinInput } from "../finui/Input";
+import { FinDatePicker } from "../finui/DatePicker";
 
 export default function Playground() {
+
+  const [selectedDate, setSelectedDate] =
+  useState("");
+
   return (
     <div className="min-h-screen bg-[#09090b] px-4 py-8 text-zinc-50 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-6xl">
@@ -171,10 +177,11 @@ export default function Playground() {
                   leftIcon={<Mail />}
                 />
 
-                <FinInput
+                <FinDatePicker
                   label="Data"
-                  type="date"
-                  rightIcon={<CalendarDays />}
+                  value={selectedDate}
+                  onChange={setSelectedDate}
+                  helperText="Clique para selecionar uma data."
                 />
               </div>
             </PlaygroundSection>
