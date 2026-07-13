@@ -23,6 +23,15 @@ import {
   FinCardTitle,
 } from "../finui/Card";
 
+import {
+  FinModal,
+  FinModalContent,
+  FinModalDescription,
+  FinModalFooter,
+  FinModalHeader,
+  FinModalTitle,
+} from "../finui/Modal";
+
 import { useState } from "react";
 
 import { FinButton } from "../finui/Button";
@@ -94,6 +103,9 @@ export default function Playground() {
 
   const [selectedSimpleCategory, setSelectedSimpleCategory] =
   useState("");
+
+  const [modalOpen, setModalOpen] =
+  useState(false);
 
   return (
     <div className="min-h-screen bg-[#09090b] px-4 py-8 text-zinc-50 sm:px-6 lg:px-10">
@@ -486,6 +498,84 @@ export default function Playground() {
                   </FinCardFooter>
                 </FinCard>
               </div>
+            </PlaygroundSection>
+          </ComponentGroup>
+
+          <ComponentGroup
+            title="FinModal"
+            description="Diálogos fluidos, acessíveis e adaptados ao celular."
+          >
+            <PlaygroundSection
+              title="Modal básico"
+              description="Exemplo com formulário e ações."
+            >
+              <FinButton
+                onClick={() => setModalOpen(true)}
+              >
+                Abrir modal
+              </FinButton>
+
+              <FinModal
+                open={modalOpen}
+                onClose={() => setModalOpen(false)}
+              >
+                <FinModalHeader>
+                  <FinModalTitle>
+                    Nova conta
+                  </FinModalTitle>
+
+                  <FinModalDescription>
+                    Cadastre uma nova conta no FinControl.
+                  </FinModalDescription>
+                </FinModalHeader>
+
+                <FinModalContent>
+                  <div className="space-y-5">
+                    <FinInput
+                      label="Nome exibido"
+                      placeholder="Ex.: Inter PJ"
+                    />
+
+                    <FinSelect
+                      label="Tipo de conta"
+                      value=""
+                      options={[
+                        {
+                          value: "bank",
+                          label: "Conta bancária",
+                        },
+                        {
+                          value: "wallet",
+                          label: "Carteira",
+                        },
+                      ]}
+                      onChange={() => undefined}
+                      searchable={false}
+                    />
+
+                    <FinInput
+                      label="Saldo inicial"
+                      placeholder="0,00"
+                      inputMode="decimal"
+                    />
+                  </div>
+                </FinModalContent>
+
+                <FinModalFooter>
+                  <FinButton
+                    variant="secondary"
+                    onClick={() =>
+                      setModalOpen(false)
+                    }
+                  >
+                    Cancelar
+                  </FinButton>
+
+                  <FinButton>
+                    Salvar conta
+                  </FinButton>
+                </FinModalFooter>
+              </FinModal>
             </PlaygroundSection>
           </ComponentGroup>
         </div>
