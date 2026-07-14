@@ -32,6 +32,10 @@ import {
   FinModalTitle,
 } from "../finui/Modal";
 
+import {
+  useFinToast,
+} from "../finui/Toast";
+
 import { useState } from "react";
 
 import { FinButton } from "../finui/Button";
@@ -106,6 +110,8 @@ export default function Playground() {
 
   const [modalOpen, setModalOpen] =
   useState(false);
+
+  const { showToast } = useFinToast();
 
   return (
     <div className="min-h-screen bg-[#09090b] px-4 py-8 text-zinc-50 sm:px-6 lg:px-10">
@@ -578,6 +584,104 @@ export default function Playground() {
               </FinModal>
             </PlaygroundSection>
           </ComponentGroup>
+
+          <ComponentGroup
+            title="FinToast"
+            description="Feedbacks rápidos que confirmam ações sem interromper o usuário."
+          >
+            <PlaygroundSection
+              title="Tipos"
+              description="Sucesso, informação, atenção e erro."
+            >
+              <FinButton
+                onClick={() =>
+                  showToast({
+                    title: "Conta adicionada.",
+                    description:
+                      "A nova conta já está disponível.",
+                    type: "success",
+                  })
+                }
+              >
+                Mostrar sucesso
+              </FinButton>
+
+              <FinButton
+                variant="secondary"
+                onClick={() =>
+                  showToast({
+                    title: "Backup criado.",
+                    description:
+                      "Guarde o arquivo em um local seguro.",
+                    type: "info",
+                  })
+                }
+              >
+                Mostrar informação
+              </FinButton>
+
+              <FinButton
+                variant="secondary"
+                onClick={() =>
+                  showToast({
+                    title: "Atenção necessária.",
+                    description:
+                      "Confira os dados antes de continuar.",
+                    type: "warning",
+                  })
+                }
+              >
+                Mostrar atenção
+              </FinButton>
+
+              <FinButton
+                variant="destructive"
+                onClick={() =>
+                  showToast({
+                    title: "Não foi possível salvar.",
+                    description:
+                      "Tente novamente em alguns instantes.",
+                    type: "error",
+                  })
+                }
+              >
+                Mostrar erro
+              </FinButton>
+            </PlaygroundSection>
+
+            <PlaygroundSection
+              title="Duração"
+              description="O toast pode fechar automaticamente ou permanecer visível."
+            >
+              <FinButton
+                variant="secondary"
+                onClick={() =>
+                  showToast({
+                    title: "Toast rápido.",
+                    duration: 1500,
+                    type: "info",
+                  })
+                }
+              >
+                1,5 segundo
+              </FinButton>
+
+              <FinButton
+                variant="secondary"
+                onClick={() =>
+                  showToast({
+                    title: "Fechamento manual.",
+                    description:
+                      "Este toast permanecerá até ser fechado.",
+                    duration: 0,
+                    type: "info",
+                  })
+                }
+              >
+                Sem fechamento automático
+              </FinButton>
+            </PlaygroundSection>
+          </ComponentGroup>
         </div>
       </div>
     </div>
@@ -637,7 +741,7 @@ function PlaygroundSection({
         </p>
       </div>
 
-      <div className="flex w-full flex-wrap items-start gap-3 overflow-hidden">
+      <div className="flex w-full flex-wrap items-start gap-3">
         {children}
       </div>
     </section>

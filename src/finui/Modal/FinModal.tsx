@@ -1,16 +1,19 @@
 import {
   createContext,
   forwardRef,
+  useCallback,
   useContext,
   useEffect,
   useId,
   useRef,
+  useState,
   type HTMLAttributes,
   type MouseEvent,
   type ReactNode,
 } from "react";
 
 import { createPortal } from "react-dom";
+
 import { X } from "lucide-react";
 
 type FinModalSize = "sm" | "md" | "lg";
@@ -32,6 +35,8 @@ type FinModalContextValue = {
 
 const FinModalContext =
   createContext<FinModalContextValue | null>(null);
+
+const EXIT_DURATION = 180;
 
 const sizeClasses: Record<FinModalSize, string> = {
   sm: "max-w-sm",
@@ -55,37 +60,186 @@ export default function FinModal({
 
   const modalRef = useRef<HTMLDivElement>(null);
 
+  const exitTimerRef =
+    useRef<number | null>(null);
+
+  const openerRef =
+    useRef<HTMLElement | null>(null);
+
+  const [rendered, setRendered] =
+    useState(open);
+
+  const [closing, setClosing] =
+    useState(false);
+
+  const requestClose = useCallback(() => {
+    if (closing) return;
+
+    const activeElement =
+      document.activeElement;
+
+    if (
+      activeElement instanceof HTMLElement &&
+      modalRef.current?.contains(activeElement)
+    ) {
+      activeElement.blur();
+    }
+
+    onClose();
+  }, [closing, onClose]);
+
+  useEffect(() => {
+    if (open) {
+      if (exitTimerRef.current !== null) {
+        window.clearTimeout(
+          exitTimerRef.current,
+        );
+
+        exitTimerRef.current = null;
+      }
+
+      setRendered(true);
+      setClosing(false);
+
+      return;
+    }
+
+    if (!rendered) return;
+
+    const activeElement =
+      document.activeElement;
+
+    if (
+      activeElement instanceof HTMLElement &&
+      modalRef.current?.contains(activeElement)
+    ) {
+      activeElement.blur();
+    }
+
+    setClosing(true);
+
+    exitTimerRef.current =
+      window.setTimeout(() => {
+        setRendered(false);
+        setClosing(false);
+
+        exitTimerRef.current = null;
+
+        openerRef.current?.focus({
+          preventScroll: true,
+        });
+      }, EXIT_DURATION);
+  }, [open, rendered]);
+
   useEffect(() => {
     if (!open) return;
+
+    const activeElement =
+      document.activeElement;
+
+    openerRef.current =
+      activeElement instanceof HTMLElement
+        ? activeElement
+        : null;
+
+    const focusTimer =
+      window.setTimeout(() => {
+        const modal = modalRef.current;
+
+        if (!modal) return;
+
+        const hasPrecisePointer =
+          window.matchMedia(
+            "(pointer: fine)",
+          ).matches;
+
+        if (!hasPrecisePointer) {
+          modal.focus({
+            preventScroll: true,
+          });
+
+          return;
+        }
+
+        const firstFocusable =
+          modal.querySelector<HTMLElement>(
+            [
+              "[data-autofocus]",
+              "input:not([disabled])",
+              "textarea:not([disabled])",
+              "select:not([disabled])",
+              "button:not([disabled])",
+              '[tabindex]:not([tabindex="-1"])',
+            ].join(","),
+          );
+
+        if (firstFocusable) {
+          firstFocusable.focus({
+            preventScroll: true,
+          });
+        } else {
+          modal.focus({
+            preventScroll: true,
+          });
+        }
+      }, 0);
+
+    return () => {
+      window.clearTimeout(focusTimer);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!rendered) return;
 
     const previousOverflow =
       document.body.style.overflow;
 
+    const previousPaddingRight =
+      document.body.style.paddingRight;
+
+    const scrollbarWidth =
+      window.innerWidth -
+      document.documentElement.clientWidth;
+
+    const currentPaddingRight =
+      Number.parseFloat(
+        window.getComputedStyle(
+          document.body,
+        ).paddingRight,
+      ) || 0;
+
     document.body.style.overflow = "hidden";
 
-    const focusTimer = window.setTimeout(() => {
-      const firstFocusable =
-        modalRef.current?.querySelector<HTMLElement>(
-          [
-            "button:not([disabled])",
-            "input:not([disabled])",
-            "select:not([disabled])",
-            "textarea:not([disabled])",
-            '[tabindex]:not([tabindex="-1"])',
-          ].join(","),
-        );
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight =
+        `${
+          currentPaddingRight +
+          scrollbarWidth
+        }px`;
+    }
 
-      firstFocusable?.focus();
-    }, 0);
+    return () => {
+      document.body.style.overflow =
+        previousOverflow;
+
+      document.body.style.paddingRight =
+        previousPaddingRight;
+    };
+  }, [rendered]);
+
+  useEffect(() => {
+    if (!rendered) return;
 
     function handleKeyDown(
       event: KeyboardEvent,
     ) {
       if (
         event.key === "Escape" &&
-        closeOnEscape
+        closeOnEscape &&
+        !closing
       ) {
-        onClose();
+        requestClose();
       }
     }
 
@@ -95,32 +249,39 @@ export default function FinModal({
     );
 
     return () => {
-      window.clearTimeout(focusTimer);
-
-      document.body.style.overflow =
-        previousOverflow;
-
       document.removeEventListener(
         "keydown",
         handleKeyDown,
       );
     };
   }, [
-    open,
+    rendered,
+    closing,
     closeOnEscape,
-    onClose,
+    requestClose,
   ]);
 
-  if (!open) return null;
+  useEffect(() => {
+    return () => {
+      if (exitTimerRef.current !== null) {
+        window.clearTimeout(
+          exitTimerRef.current,
+        );
+      }
+    };
+  }, []);
+
+  if (!rendered) return null;
 
   function handleOverlayClick(
     event: MouseEvent<HTMLDivElement>,
   ) {
     if (
       closeOnOverlayClick &&
-      event.target === event.currentTarget
+      event.target === event.currentTarget &&
+      !closing
     ) {
-      onClose();
+      requestClose();
     }
   }
 
@@ -128,7 +289,13 @@ export default function FinModal({
     <div
       role="presentation"
       onMouseDown={handleOverlayClick}
-      className="fixed inset-0 z-100 flex items-end justify-center overflow-y-auto bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      className={[
+        "fixed inset-0 z-100 flex items-end justify-center overflow-y-auto bg-black/70 p-0 backdrop-blur-sm",
+        "sm:items-center sm:p-6",
+        closing
+          ? "animate-[fin-overlay-exit_180ms_ease-in_forwards]"
+          : "animate-[fin-overlay-enter_180ms_ease-out]",
+      ].join(" ")}
     >
       <FinModalContext.Provider
         value={{
@@ -138,25 +305,28 @@ export default function FinModal({
       >
         <div
           ref={modalRef}
+          tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={descriptionId}
           className={[
-            "relative w-full border border-zinc-800 bg-[#111113]",
-            "animate-[fin-modal-mobile_180ms_ease-out]",
+            "relative w-full border border-zinc-800 bg-[#111113] outline-none",
             "rounded-t-3xl shadow-2xl shadow-black/50",
-            "sm:animate-[fin-modal-desktop_180ms_ease-out]",
             "sm:rounded-2xl",
+            closing
+              ? "animate-[fin-modal-mobile-exit_180ms_ease-in_forwards] sm:animate-[fin-modal-desktop-exit_180ms_ease-in_forwards]"
+              : "animate-[fin-modal-mobile-enter_180ms_ease-out] sm:animate-[fin-modal-desktop-enter_180ms_ease-out]",
             sizeClasses[size],
           ].join(" ")}
         >
           {showCloseButton && (
             <button
               type="button"
-              onClick={onClose}
+              onClick={requestClose}
+              disabled={closing}
               aria-label="Fechar modal"
-              className="absolute right-4 top-4 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
+              className="absolute right-4 top-4 z-10 flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition duration-150 hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <X
                 aria-hidden="true"
@@ -171,7 +341,27 @@ export default function FinModal({
 
       <style>
         {`
-          @keyframes fin-modal-desktop {
+          @keyframes fin-overlay-enter {
+            from {
+              opacity: 0;
+            }
+
+            to {
+              opacity: 1;
+            }
+          }
+
+          @keyframes fin-overlay-exit {
+            from {
+              opacity: 1;
+            }
+
+            to {
+              opacity: 0;
+            }
+          }
+
+          @keyframes fin-modal-desktop-enter {
             from {
               opacity: 0;
               transform: translateY(8px) scale(0.985);
@@ -183,7 +373,19 @@ export default function FinModal({
             }
           }
 
-          @keyframes fin-modal-mobile {
+          @keyframes fin-modal-desktop-exit {
+            from {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+
+            to {
+              opacity: 0;
+              transform: translateY(8px) scale(0.985);
+            }
+          }
+
+          @keyframes fin-modal-mobile-enter {
             from {
               opacity: 0;
               transform: translateY(24px);
@@ -192,6 +394,18 @@ export default function FinModal({
             to {
               opacity: 1;
               transform: translateY(0);
+            }
+          }
+
+          @keyframes fin-modal-mobile-exit {
+            from {
+              opacity: 1;
+              transform: translateY(0);
+            }
+
+            to {
+              opacity: 0;
+              transform: translateY(24px);
             }
           }
         `}
@@ -333,7 +547,8 @@ const FinModalFooter = forwardRef<
     <div
       ref={ref}
       className={[
-        "flex flex-col-reverse gap-3 border-t border-zinc-800 px-5 py-4 sm:flex-row sm:justify-end sm:px-6",
+        "flex flex-col-reverse gap-3 border-t border-zinc-800 px-5 py-4",
+        "sm:flex-row sm:justify-end sm:px-6",
         className,
       ]
         .filter(Boolean)

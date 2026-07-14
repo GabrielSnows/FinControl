@@ -15,21 +15,27 @@ import Playground from "../pages/Playground";
 import Settings from "../pages/Settings";
 import Transactions from "../pages/Transactions";
 
+import {
+  FinToastProvider,
+} from "../finui/Toast";
+
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/playground"
-          element={<Playground />}
-        />
+    <FinToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/playground"
+            element={<Playground />}
+          />
 
-        <Route
-          path="*"
-          element={<FinControlLayout />}
-        />
-      </Routes>
-    </BrowserRouter>
+          <Route
+            path="*"
+            element={<FinControlLayout />}
+          />
+        </Routes>
+      </BrowserRouter>
+    </FinToastProvider>
   );
 }
 
