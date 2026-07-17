@@ -1,4 +1,11 @@
 import { useLiveQuery } from "dexie-react-hooks";
+import FinStatCard from "../components/FinStatCard/FinStatCard";
+import { formatCurrency } from "../utils/currency";
+
+import {
+  getCurrentMonthKey,
+  getCurrentMonthName,
+} from "../utils/date";
 
 import {
   ArrowDownCircle,
@@ -22,29 +29,6 @@ export default function Dashboard() {
       transactions,
     };
   }, []);
-
-  function formatCurrency(value: number) {
-    return value.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
-  }
-
-  function getCurrentMonthKey() {
-    const today = new Date();
-
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-
-    return `${year}-${month}`;
-  }
-
-  function getCurrentMonthName() {
-    return new Intl.DateTimeFormat("pt-BR", {
-      month: "long",
-      year: "numeric",
-    }).format(new Date());
-  }
 
   if (dashboardData === undefined) {
     return (
@@ -130,57 +114,31 @@ export default function Dashboard() {
       </div>
 
       <section className="mt-8 grid gap-5 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-emerald-950 p-3 text-emerald-400">
-              <ArrowUpCircle size={24} />
-            </div>
+        <FinStatCard
+          title="Receitas registradas"
+          value={incomeTransactions.length}
+          icon={ArrowUpCircle}
+          iconBackgroundClassName="bg-emerald-950"
+          iconColorClassName="text-emerald-400"
+        />
 
-            <div>
-              <p className="text-sm text-slate-400">
-                Receitas registradas
-              </p>
+        <FinStatCard
+          title="Despesas registradas"
+          value={expenseTransactions.length}
+          icon={ArrowDownCircle}
+          iconBackgroundClassName="bg-red-950"
+          iconColorClassName="text-red-400"
+        />
 
-              <strong className="text-xl">
-                {incomeTransactions.length}
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5">
-          <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-red-950 p-3 text-red-400">
-              <ArrowDownCircle size={24} />
-            </div>
-
-            <div>
-              <p className="text-sm text-slate-400">
-                Despesas registradas
-              </p>
-
-              <strong className="text-xl">
-                {expenseTransactions.length}
-              </strong>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5">
-          <p className="text-sm text-slate-400">
-            Resultado do mês
-          </p>
-
-          <strong
-            className={`mt-2 block text-2xl ${
-              monthResult < 0
-                ? "text-red-400"
-                : "text-emerald-400"
-            }`}
-          >
-            {formatCurrency(monthResult)}
-          </strong>
-        </div>
+        <FinStatCard
+          title="Resultado do mês"
+          value={formatCurrency(monthResult)}
+          valueClassName={
+            monthResult < 0
+              ? "text-red-400"
+              : "text-emerald-400"
+          }
+        />
       </section>
 
       <section className="mt-8 rounded-2xl border border-slate-700 bg-slate-800 p-6">
