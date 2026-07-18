@@ -188,10 +188,10 @@ export default function Dashboard() {
         />
       </section>
 
-      <section className="mt-8 rounded-2xl border border-slate-700 bg-slate-800 p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <section className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-xl font-semibold text-white">
               Minhas contas
             </h2>
 
@@ -202,69 +202,84 @@ export default function Dashboard() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-slate-300">
-            <WalletCards size={18} />
+          <div className="flex w-fit items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-2.5">
+            <WalletCards
+              size={18}
+              className="text-slate-400"
+            />
 
-            <span>
-              Total: {formatCurrency(totalBalance)}
+            <span className="text-sm text-slate-400">
+              Saldo total
             </span>
+
+            <strong
+              className={
+                totalBalance < 0
+                  ? "text-sm text-red-400"
+                  : "text-sm text-white"
+              }
+            >
+              {formatCurrency(totalBalance)}
+            </strong>
           </div>
         </div>
 
         {accounts.length === 0 ? (
-          <div className="mt-6 rounded-xl border border-dashed border-slate-700 px-6 py-10 text-center">
-            <Landmark
-              size={42}
-              className="mx-auto text-slate-500"
-            />
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 px-5 py-10 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800">
+              <Landmark
+                size={26}
+                className="text-slate-400"
+              />
+            </div>
 
-            <h3 className="mt-4 font-semibold">
+            <h3 className="mt-4 font-semibold text-white">
               Nenhuma conta cadastrada
             </h3>
 
-            <p className="mt-2 text-sm text-slate-400">
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-400">
               Acesse a página Contas para cadastrar sua primeira conta.
             </p>
           </div>
         ) : (
-          <div className="mt-6 divide-y divide-slate-700">
+          <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {accounts.map((account) => (
-              <div
+              <article
                 key={account.id}
-                className="flex items-center justify-between gap-4 py-4 first:pt-0 last:pb-0"
+                className="group flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4 transition-colors hover:border-slate-700 hover:bg-slate-950/70"
               >
-                <div className="flex min-w-0 items-center gap-4">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white p-2">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-2">
                     <img
                       src={account.image}
-                      alt={account.name}
+                      alt={`Logo de ${account.name}`}
                       className="h-full w-full object-contain"
                     />
                   </div>
 
                   <div className="min-w-0">
-                    <h3 className="truncate font-medium">
+                    <h3 className="truncate font-medium text-white">
                       {account.name}
                     </h3>
 
-                    <p className="mt-1 text-sm text-slate-400">
+                    <span className="mt-1 inline-flex rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
                       {account.type === "bank"
                         ? "Banco"
                         : "Carteira"}
-                    </p>
+                    </span>
                   </div>
                 </div>
 
                 <strong
                   className={
                     account.balance < 0
-                      ? "shrink-0 text-red-400"
-                      : "shrink-0 text-white"
+                      ? "shrink-0 text-sm text-red-400 sm:text-base"
+                      : "shrink-0 text-sm text-white sm:text-base"
                   }
                 >
                   {formatCurrency(account.balance)}
                 </strong>
-              </div>
+              </article>
             ))}
           </div>
         )}
