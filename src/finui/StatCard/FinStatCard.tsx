@@ -1,5 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 
+import {
+  FinCard,
+  FinCardContent,
+} from "../Card/FinCard";
+
 interface FinStatCardProps {
   title: string;
   value: string | number;
@@ -13,36 +18,37 @@ export default function FinStatCard({
   title,
   value,
   icon: Icon,
-  iconBackgroundClassName = "bg-slate-700",
-  iconColorClassName = "text-white",
-  valueClassName = "text-white",
+  iconBackgroundClassName = "bg-zinc-900",
+  iconColorClassName = "text-zinc-400",
+  valueClassName = "text-zinc-100",
 }: FinStatCardProps) {
   return (
-    <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5 transition-colors duration-200 hover:border-slate-600">
-      <div className="flex items-center gap-4">
+    <FinCard variant="subtle">
+      <FinCardContent className="flex items-center gap-4">
         {Icon && (
           <div
-            className={`flex h-12 w-12 items-center justify-center rounded-xl ${iconBackgroundClassName}`}
+            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconBackgroundClassName}`}
           >
             <Icon
-              size={24}
+              size={21}
+              strokeWidth={1.8}
               className={iconColorClassName}
             />
           </div>
         )}
 
         <div className="min-w-0">
-          <p className="text-sm text-slate-400">
+          <p className="text-sm font-medium text-zinc-500">
             {title}
           </p>
 
           <strong
-            className={`mt-1 block text-xl font-semibold ${valueClassName}`}
+            className={`mt-1 block truncate text-xl font-semibold tracking-tight ${valueClassName}`}
           >
             {value}
           </strong>
         </div>
-      </div>
-    </div>
+      </FinCardContent>
+    </FinCard>
   );
 }

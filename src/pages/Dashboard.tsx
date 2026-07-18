@@ -12,8 +12,10 @@ import {
   WalletCards,
 } from "lucide-react";
 
-import FinStatCard from "../components/FinStatCard/FinStatCard";
 import { db } from "../database/database";
+
+import FinStatCard from "../finui/StatCard/FinStatCard";
+
 import {
   FinCard,
   FinCardContent,
