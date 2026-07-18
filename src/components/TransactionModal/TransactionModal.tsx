@@ -1,10 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import {
+  ArrowDownLeft,
+  ArrowUpRight,
+  CalendarDays,
+  CircleDollarSign,
+  FileText,
+  WalletCards,
+} from "lucide-react";
 
-import Modal from "../Modal/Modal";
 import AlertModal from "../AlertModal/AlertModal";
-import Button from "../ui/Button";
-import Input from "../ui/Input";
+
+import FinButton from "../../finui/Button/FinButton";
+import FinInput from "../../finui/Input/FinInput";
+import FinModal, {
+  FinModalContent,
+  FinModalDescription,
+  FinModalFooter,
+  FinModalHeader,
+  FinModalTitle,
+} from "../../finui/Modal/FinModal";
+import FinSelect from "../../finui/Select/FinSelect";
 
 import type { Account } from "../../types/Account";
 import type {
@@ -65,7 +81,6 @@ const expenseCategories = [
 
 function getToday() {
   const today = new Date();
-
   const year = today.getFullYear();
   const month = String(today.getMonth() + 1).padStart(2, "0");
   const day = String(today.getDate()).padStart(2, "0");
@@ -87,13 +102,51 @@ export default function TransactionModal({
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(getToday());
-
   const [alert, setAlert] = useState<AlertData>();
+  const [alertOpen, setAlertOpen] = useState(false);
 
-  const categories =
-    type === "income"
-      ? incomeCategories
-      : expenseCategories;
+  const isIncome = type === "income";
+
+  const categories = useMemo(
+    () => (isIncome ? incomeCategories : expenseCategories),
+    [isIncome],
+  );
+
+  const accountOptions = useMemo(
+    () =>
+      accounts.map((account) => ({
+        value: String(account.id),
+        label: account.name,
+      })),
+    [accounts],
+  );
+
+  const categoryOptions = useMemo(
+    () =>
+      categories.map((categoryName) => ({
+        value: categoryName,
+        label: categoryName,
+      })),
+    [categories],
+  );
+
+  const modalTitle = transaction
+    ? "Editar movimentação"
+    : isIncome
+      ? "Nova receita"
+      : "Nova despesa";
+
+  const modalDescription = transaction
+    ? "Atualize os dados desta movimentação."
+    : isIncome
+      ? "Registre uma nova entrada em uma das suas contas."
+      : "Registre uma nova saída em uma das suas contas.";
+
+  const submitText = transaction
+    ? "Salvar alterações"
+    : isIncome
+      ? "Salvar receita"
+      : "Salvar despesa";
 
   function showAlert(
     title: string,
@@ -105,6 +158,12 @@ export default function TransactionModal({
       message,
       type: alertType,
     });
+
+    setAlertOpen(true);
+  }
+
+  function handleCloseAlert() {
+  setAlertOpen(false);
   }
 
   useEffect(() => {
@@ -124,7 +183,6 @@ export default function TransactionModal({
         ? String(accounts[0].id)
         : "",
     );
-
     setCategory("");
     setDescription("");
     setAmount("");
@@ -135,7 +193,7 @@ export default function TransactionModal({
     if (!categories.includes(category)) {
       setCategory("");
     }
-  }, [type, category, categories]);
+  }, [category, categories]);
 
   async function handleSubmit(
     event: FormEvent<HTMLFormElement>,
@@ -156,7 +214,6 @@ export default function TransactionModal({
         "Conta não selecionada",
         "Selecione a conta que será afetada por esta movimentação.",
       );
-
       return;
     }
 
@@ -165,20 +222,18 @@ export default function TransactionModal({
         "Categoria não selecionada",
         "Selecione uma categoria para a movimentação.",
       );
-
       return;
     }
 
     if (
-      normalizedAmount === "" ||
-      Number.isNaN(numericAmount) ||
-      numericAmount <= 0
+      normalizedAmount === ""
+      || Number.isNaN(numericAmount)
+      || numericAmount <= 0
     ) {
       showAlert(
         "Valor inválido",
         "Digite um valor maior que zero.",
       );
-
       return;
     }
 
@@ -187,7 +242,6 @@ export default function TransactionModal({
         "Data não informada",
         "Selecione a data da movimentação.",
       );
-
       return;
     }
 
@@ -203,148 +257,170 @@ export default function TransactionModal({
 
   return (
     <>
-      <Modal
+      <FinModal
         open={open}
-        title={
-          transaction
-            ? "Editar movimentação"
-            : type === "income"
-              ? "Nova receita"
-              : "Nova despesa"
-        }
         onClose={onClose}
+        size="md"
+        closeOnOverlayClick={!saving}
+        closeOnEscape={!saving}
       >
-        {accounts.length === 0 ? (
-          <div>
-            <p className="text-slate-300">
-              Você precisa cadastrar uma conta antes de
-              registrar movimentações.
-            </p>
+        <FinModalHeader>
+          <div className="flex items-start gap-3.5">
+            <div
+              className={[
+                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border",
+                isIncome
+                  ? "border-emerald-950 bg-emerald-950/30 text-emerald-400"
+                  : "border-red-950 bg-red-950/30 text-red-400",
+              ].join(" ")}
+            >
+              {isIncome ? (
+                <ArrowDownLeft className="h-5 w-5" />
+              ) : (
+                <ArrowUpRight className="h-5 w-5" />
+              )}
+            </div>
 
-            <div className="mt-6 flex justify-end">
-              <Button
+            <div className="min-w-0 flex-1">
+              <FinModalTitle>{modalTitle}</FinModalTitle>
+
+              <FinModalDescription className="mt-1.5">
+                {modalDescription}
+              </FinModalDescription>
+            </div>
+          </div>
+        </FinModalHeader>
+
+        {accounts.length === 0 ? (
+          <>
+            <FinModalContent>
+              <div className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-5">
+                <div className="flex items-start gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400">
+                    <WalletCards className="h-5 w-5" />
+                  </div>
+
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">
+                      Nenhuma conta cadastrada
+                    </p>
+
+                    <p className="mt-1 text-sm leading-6 text-zinc-500">
+                      Você precisa cadastrar uma conta antes de registrar
+                      receitas ou despesas.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </FinModalContent>
+
+            <FinModalFooter>
+              <FinButton
+                type="button"
                 variant="secondary"
                 onClick={onClose}
               >
                 Fechar
-              </Button>
-            </div>
-          </div>
+              </FinButton>
+            </FinModalFooter>
+          </>
         ) : (
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-5"
-          >
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Conta
-              </label>
+          <form onSubmit={handleSubmit}>
+            <FinModalContent>
+              <div className="space-y-5">
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <FinSelect
+                    label="Conta"
+                    value={accountId}
+                    options={accountOptions}
+                    onChange={(value) => setAccountId(value)}
+                    placeholder="Selecione uma conta"
+                    searchPlaceholder="Pesquisar conta..."
+                    emptyMessage="Nenhuma conta encontrada."
+                    searchable={accounts.length > 6}
+                  />
 
-              <select
-                value={accountId}
-                onChange={(event) =>
-                  setAccountId(event.target.value)
-                }
-                className="w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-emerald-500"
-              >
-                <option value="">
-                  Selecione uma conta
-                </option>
+                  <FinSelect
+                    label="Categoria"
+                    value={category}
+                    options={categoryOptions}
+                    onChange={(value) => setCategory(value)}
+                    placeholder="Selecione uma categoria"
+                    searchPlaceholder="Pesquisar categoria..."
+                    emptyMessage="Nenhuma categoria encontrada."
+                    searchable={categories.length > 8}
+                  />
+                </div>
 
-                {accounts.map((account) => (
-                  <option
-                    key={account.id}
-                    value={account.id}
-                  >
-                    {account.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <FinInput
+                  label="Valor"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={amount}
+                  onChange={(event) => setAmount(event.target.value)}
+                  leftIcon={<CircleDollarSign />}
+                  autoComplete="off"
+                />
 
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-300">
-                Categoria
-              </label>
+                <FinInput
+                  label="Descrição"
+                  type="text"
+                  placeholder={
+                    isIncome
+                      ? "Ex.: Pagamento de freelance"
+                      : "Ex.: Compra no mercado"
+                  }
+                  value={description}
+                  onChange={(event) =>
+                    setDescription(event.target.value)
+                  }
+                  leftIcon={<FileText />}
+                  maxLength={120}
+                  autoComplete="off"
+                />
 
-              <select
-                value={category}
-                onChange={(event) =>
-                  setCategory(event.target.value)
-                }
-                className="w-full rounded-xl border border-slate-600 bg-slate-900 px-4 py-3 text-white outline-none transition focus:border-emerald-500"
-              >
-                <option value="">
-                  Selecione uma categoria
-                </option>
+                <FinInput
+                  label="Data"
+                  type="date"
+                  value={date}
+                  onChange={(event) => setDate(event.target.value)}
+                  leftIcon={<CalendarDays />}
+                />
+              </div>
+            </FinModalContent>
 
-                {categories.map((categoryName) => (
-                  <option
-                    key={categoryName}
-                    value={categoryName}
-                  >
-                    {categoryName}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <Input
-              label="Valor"
-              type="text"
-              placeholder="0,00"
-              value={amount}
-              onChange={setAmount}
-            />
-
-            <Input
-              label="Descrição"
-              type="text"
-              placeholder="Ex.: Compra no mercado"
-              value={description}
-              onChange={setDescription}
-            />
-
-            <Input
-              label="Data"
-              type="date"
-              value={date}
-              onChange={setDate}
-            />
-
-            <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
-              <Button
+            <FinModalFooter className="grid grid-cols-2 gap-3">
+              <FinButton
+                type="button"
                 variant="secondary"
+                fullWidth
                 onClick={onClose}
                 disabled={saving}
               >
                 Cancelar
-              </Button>
+              </FinButton>
 
-              <Button
+              <FinButton
                 type="submit"
+                fullWidth
+                loading={saving}
                 disabled={saving}
               >
-                {saving
-                  ? "Salvando..."
-                  : transaction
-                    ? "Salvar alterações"
-                    : type === "income"
-                      ? "Salvar receita"
-                      : "Salvar despesa"}
-              </Button>
-            </div>
+                {submitText}
+              </FinButton>
+            </FinModalFooter>
           </form>
         )}
-      </Modal>
+      </FinModal>
 
       <AlertModal
-        open={Boolean(alert)}
+        open={alertOpen}
         title={alert?.title ?? ""}
         message={alert?.message ?? ""}
         type={alert?.type}
-        onClose={() => setAlert(undefined)}
-      />
+        onClose={handleCloseAlert}
+      />    
     </>
   );
 }

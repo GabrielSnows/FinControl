@@ -26,6 +26,7 @@ type FinModalProps = {
   closeOnOverlayClick?: boolean;
   closeOnEscape?: boolean;
   showCloseButton?: boolean;
+  zIndex?: number;
 };
 
 type FinModalContextValue = {
@@ -52,6 +53,7 @@ export default function FinModal({
   closeOnOverlayClick = true,
   closeOnEscape = true,
   showCloseButton = true,
+  zIndex = 100,
 }: FinModalProps) {
   const generatedId = useId();
 
@@ -289,8 +291,9 @@ export default function FinModal({
     <div
       role="presentation"
       onMouseDown={handleOverlayClick}
+      style={{ zIndex }}
       className={[
-        "fixed inset-0 z-100 flex items-end justify-center overflow-y-auto bg-black/70 p-0 backdrop-blur-sm",
+        "fixed inset-0 flex items-end justify-center overflow-y-auto bg-black/70 p-0 backdrop-blur-sm",
         "sm:items-center sm:p-6",
         closing
           ? "animate-[fin-overlay-exit_180ms_ease-in_forwards]"
