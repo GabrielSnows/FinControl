@@ -6,13 +6,19 @@ import {
   ArrowDownCircle,
   ArrowUpCircle,
   Landmark,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
   WalletCards,
 } from "lucide-react";
 
-import FinPageHeader from "../finui/PageHeader/FinPageHeader";
-import Card from "../components/Card/Card";
 import FinStatCard from "../components/FinStatCard/FinStatCard";
 import { db } from "../database/database";
+import {
+  FinCard,
+  FinCardContent,
+} from "../finui/Card/FinCard";
+import FinPageHeader from "../finui/PageHeader/FinPageHeader";
 import FinSelect from "../finui/Select/FinSelect";
 import { formatCurrency } from "../utils/currency";
 import {
@@ -72,7 +78,7 @@ export default function Dashboard() {
 
   if (dashboardData === undefined) {
     return (
-      <div className="flex min-h-64 items-center justify-center text-slate-400">
+      <div className="flex min-h-64 items-center justify-center text-zinc-500">
         Carregando dashboard...
       </div>
     );
@@ -131,29 +137,85 @@ export default function Dashboard() {
         }
       />
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        <Card
-          title="Saldo total"
-          value={formatCurrency(totalBalance)}
-          color={
-            totalBalance < 0
-              ? "text-red-400"
-              : "text-white"
-          }
-        />
+      <section className="grid gap-5 lg:grid-cols-3">
+        <FinCard>
+          <FinCardContent>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-zinc-500">
+                  Saldo total
+                </p>
 
-        <Card
-          title="Receitas do mês"
-          value={formatCurrency(totalIncome)}
-          color="text-emerald-400"
-        />
+                <strong
+                  className={
+                    totalBalance < 0
+                      ? "mt-3 block truncate text-2xl font-semibold tracking-tight text-red-400 sm:text-3xl"
+                      : "mt-3 block truncate text-2xl font-semibold tracking-tight text-zinc-100 sm:text-3xl"
+                  }
+                >
+                  {formatCurrency(totalBalance)}
+                </strong>
+              </div>
 
-        <Card
-          title="Despesas do mês"
-          value={formatCurrency(totalExpense)}
-          color="text-red-400"
-        />
-      </div>
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-zinc-900">
+                <Wallet
+                  size={21}
+                  strokeWidth={1.8}
+                  className="text-zinc-400"
+                />
+              </div>
+            </div>
+          </FinCardContent>
+        </FinCard>
+
+        <FinCard>
+          <FinCardContent>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-zinc-500">
+                  Receitas do mês
+                </p>
+
+                <strong className="mt-3 block truncate text-2xl font-semibold tracking-tight text-emerald-400 sm:text-3xl">
+                  {formatCurrency(totalIncome)}
+                </strong>
+              </div>
+
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-950/60">
+                <TrendingUp
+                  size={21}
+                  strokeWidth={1.8}
+                  className="text-emerald-400"
+                />
+              </div>
+            </div>
+          </FinCardContent>
+        </FinCard>
+
+        <FinCard>
+          <FinCardContent>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-zinc-500">
+                  Despesas do mês
+                </p>
+
+                <strong className="mt-3 block truncate text-2xl font-semibold tracking-tight text-red-400 sm:text-3xl">
+                  {formatCurrency(totalExpense)}
+                </strong>
+              </div>
+
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-950/60">
+                <TrendingDown
+                  size={21}
+                  strokeWidth={1.8}
+                  className="text-red-400"
+                />
+              </div>
+            </div>
+          </FinCardContent>
+        </FinCard>
+      </section>
 
       <section className="mt-8 grid gap-5 md:grid-cols-3">
         <FinStatCard
@@ -183,27 +245,27 @@ export default function Dashboard() {
         />
       </section>
 
-      <section className="mt-8 rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-6">
+      <section className="mt-8 rounded-2xl border border-zinc-800 bg-[#111113] p-4 sm:p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-white">
+            <h2 className="text-xl font-semibold text-zinc-100">
               Minhas contas
             </h2>
 
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-zinc-500">
               {accounts.length === 1
                 ? "1 conta cadastrada"
                 : `${accounts.length} contas cadastradas`}
             </p>
           </div>
 
-          <div className="flex w-fit items-center gap-2 rounded-xl border border-slate-800 bg-slate-950/70 px-4 py-2.5">
+          <div className="flex w-fit items-center gap-2 rounded-xl border border-zinc-800 bg-[#0d0d0f] px-4 py-2.5">
             <WalletCards
               size={18}
-              className="text-slate-400"
+              className="text-zinc-500"
             />
 
-            <span className="text-sm text-slate-400">
+            <span className="text-sm text-zinc-500">
               Saldo total
             </span>
 
@@ -211,7 +273,7 @@ export default function Dashboard() {
               className={
                 totalBalance < 0
                   ? "text-sm text-red-400"
-                  : "text-sm text-white"
+                  : "text-sm text-zinc-100"
               }
             >
               {formatCurrency(totalBalance)}
@@ -220,28 +282,29 @@ export default function Dashboard() {
         </div>
 
         {accounts.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-950/30 px-5 py-10 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800">
+          <div className="mt-6 rounded-2xl border border-dashed border-zinc-800 bg-[#0d0d0f] px-5 py-10 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900">
               <Landmark
                 size={26}
-                className="text-slate-400"
+                className="text-zinc-500"
               />
             </div>
 
-            <h3 className="mt-4 font-semibold text-white">
+            <h3 className="mt-4 font-semibold text-zinc-100">
               Nenhuma conta cadastrada
             </h3>
 
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-400">
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-zinc-500">
               Acesse a página Contas para cadastrar sua primeira conta.
             </p>
           </div>
         ) : (
           <div className="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {accounts.map((account) => (
-              <article
+              <FinCard
                 key={account.id}
-                className="group flex min-w-0 items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-950/40 p-4 transition-colors hover:border-slate-700 hover:bg-slate-950/70"
+                variant="interactive"
+                className="flex min-w-0 items-center justify-between gap-4 p-4"
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-2">
@@ -253,11 +316,11 @@ export default function Dashboard() {
                   </div>
 
                   <div className="min-w-0">
-                    <h3 className="truncate font-medium text-white">
+                    <h3 className="truncate font-medium text-zinc-100">
                       {account.name}
                     </h3>
 
-                    <span className="mt-1 inline-flex rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-400">
+                    <span className="mt-1 inline-flex rounded-full bg-zinc-900 px-2 py-0.5 text-xs text-zinc-500">
                       {account.type === "bank"
                         ? "Banco"
                         : "Carteira"}
@@ -269,12 +332,12 @@ export default function Dashboard() {
                   className={
                     account.balance < 0
                       ? "shrink-0 text-sm text-red-400 sm:text-base"
-                      : "shrink-0 text-sm text-white sm:text-base"
+                      : "shrink-0 text-sm text-zinc-100 sm:text-base"
                   }
                 >
                   {formatCurrency(account.balance)}
                 </strong>
-              </article>
+              </FinCard>
             ))}
           </div>
         )}
