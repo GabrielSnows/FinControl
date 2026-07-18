@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 
 import { useLiveQuery } from "dexie-react-hooks";
-
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -16,6 +15,10 @@ import { db } from "../database/database";
 import {
   FinCard,
   FinCardContent,
+  FinCardDescription,
+  FinCardFooter,
+  FinCardHeader,
+  FinCardTitle,
 } from "../finui/Card/FinCard";
 import FinPageHeader from "../finui/PageHeader/FinPageHeader";
 import FinSelect from "../finui/Select/FinSelect";
@@ -144,12 +147,11 @@ export default function Dashboard() {
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.8fr)]">
         <FinCard className="relative overflow-hidden">
           <FinCardContent className="relative p-6 sm:p-8">
-            <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-white/2.5 blur-2xl" />
+            <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-white/3 blur-2xl" />
 
             <div className="relative">
               <div className="flex items-center gap-2 text-sm font-medium text-zinc-500">
                 <WalletCards size={17} />
-
                 <span>Saldo total</span>
               </div>
 
@@ -191,129 +193,171 @@ export default function Dashboard() {
         </FinCard>
 
         <FinCard variant="subtle">
-          <FinCardContent className="flex h-full flex-col justify-between p-6">
+          <FinCardHeader>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-900">
+              <ReceiptText
+                size={21}
+                strokeWidth={1.8}
+                className="text-zinc-400"
+              />
+            </div>
+
             <div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-zinc-900">
-                <ReceiptText
-                  size={21}
-                  strokeWidth={1.8}
-                  className="text-zinc-400"
-                />
-              </div>
+              <FinCardTitle>
+                Movimentações
+              </FinCardTitle>
 
-              <p className="mt-5 text-sm font-medium text-zinc-500">
-                Movimentações no período
-              </p>
-
-              <strong className="mt-2 block text-4xl font-semibold tracking-tight text-zinc-100">
-                {totalRegisteredTransactions}
-              </strong>
+              <FinCardDescription>
+                Registros no período selecionado.
+              </FinCardDescription>
             </div>
+          </FinCardHeader>
 
-            <div className="mt-8 flex items-center justify-between border-t border-zinc-900 pt-4 text-sm">
-              <span className="text-zinc-500">
-                {incomeTransactions.length} receitas
-              </span>
-
-              <span className="text-zinc-500">
-                {expenseTransactions.length} despesas
-              </span>
-            </div>
+          <FinCardContent>
+            <strong className="block text-4xl font-semibold tracking-tight text-zinc-100">
+              {totalRegisteredTransactions}
+            </strong>
           </FinCardContent>
+
+          <FinCardFooter className="justify-between text-sm">
+            <span className="text-zinc-500">
+              {incomeTransactions.length} receitas
+            </span>
+
+            <span className="text-zinc-500">
+              {expenseTransactions.length} despesas
+            </span>
+          </FinCardFooter>
         </FinCard>
       </section>
 
       <section className="mt-5 grid gap-5 md:grid-cols-3">
         <FinCard>
-          <FinCardContent className="p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-zinc-500">
-                  Receitas
-                </p>
+          <FinCardHeader>
+            <div>
+              <FinCardTitle>
+                Receitas
+              </FinCardTitle>
 
-                <strong className="mt-3 block wrap-break-word text-2xl font-semibold tracking-tight text-emerald-400">
-                  {formatCurrency(totalIncome)}
-                </strong>
-              </div>
+              <FinCardDescription>
+                Valores recebidos no período.
+              </FinCardDescription>
+            </div>
 
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-950/50">
-                <TrendingUp
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-950/50">
+              <TrendingUp
+                size={19}
+                strokeWidth={1.8}
+                className="text-emerald-400"
+              />
+            </div>
+          </FinCardHeader>
+
+          <FinCardContent>
+            <strong className="block wrap-break-word text-2xl font-semibold tracking-tight text-emerald-400">
+              {formatCurrency(totalIncome)}
+            </strong>
+          </FinCardContent>
+
+          <FinCardFooter>
+            <span className="text-sm text-zinc-500">
+              {incomeTransactions.length === 1
+                ? "1 receita registrada"
+                : `${incomeTransactions.length} receitas registradas`}
+            </span>
+          </FinCardFooter>
+        </FinCard>
+
+        <FinCard>
+          <FinCardHeader>
+            <div>
+              <FinCardTitle>
+                Despesas
+              </FinCardTitle>
+
+              <FinCardDescription>
+                Valores gastos no período.
+              </FinCardDescription>
+            </div>
+
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-950/50">
+              <TrendingDown
+                size={19}
+                strokeWidth={1.8}
+                className="text-red-400"
+              />
+            </div>
+          </FinCardHeader>
+
+          <FinCardContent>
+            <strong className="block wrap-break-word text-2xl font-semibold tracking-tight text-red-400">
+              {formatCurrency(totalExpense)}
+            </strong>
+          </FinCardContent>
+
+          <FinCardFooter>
+            <span className="text-sm text-zinc-500">
+              {expenseTransactions.length === 1
+                ? "1 despesa registrada"
+                : `${expenseTransactions.length} despesas registradas`}
+            </span>
+          </FinCardFooter>
+        </FinCard>
+
+        <FinCard>
+          <FinCardHeader>
+            <div>
+              <FinCardTitle>
+                Resultado
+              </FinCardTitle>
+
+              <FinCardDescription>
+                Diferença entre receitas e despesas.
+              </FinCardDescription>
+            </div>
+
+            <div
+              className={
+                resultIsPositive
+                  ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-950/50"
+                  : "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-950/50"
+              }
+            >
+              {resultIsPositive ? (
+                <ArrowUpRight
                   size={19}
                   strokeWidth={1.8}
                   className="text-emerald-400"
                 />
-              </div>
-            </div>
-          </FinCardContent>
-        </FinCard>
-
-        <FinCard>
-          <FinCardContent className="p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-zinc-500">
-                  Despesas
-                </p>
-
-                <strong className="mt-3 block wrap-break-word text-2xl font-semibold tracking-tight text-red-400">
-                  {formatCurrency(totalExpense)}
-                </strong>
-              </div>
-
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-950/50">
-                <TrendingDown
+              ) : (
+                <ArrowDownRight
                   size={19}
                   strokeWidth={1.8}
                   className="text-red-400"
                 />
-              </div>
+              )}
             </div>
+          </FinCardHeader>
+
+          <FinCardContent>
+            <strong
+              className={
+                resultIsPositive
+                  ? "block wrap-break-word text-2xl font-semibold tracking-tight text-emerald-400"
+                  : "block wrap-break-word text-2xl font-semibold tracking-tight text-red-400"
+              }
+            >
+              {formatCurrency(monthResult)}
+            </strong>
           </FinCardContent>
-        </FinCard>
 
-        <FinCard>
-          <FinCardContent className="p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-zinc-500">
-                  Resultado
-                </p>
-
-                <strong
-                  className={
-                    resultIsPositive
-                      ? "mt-3 block wrap-break-word text-2xl font-semibold tracking-tight text-emerald-400"
-                      : "mt-3 block wrap-break-word text-2xl font-semibold tracking-tight text-red-400"
-                  }
-                >
-                  {formatCurrency(monthResult)}
-                </strong>
-              </div>
-
-              <div
-                className={
-                  resultIsPositive
-                    ? "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-950/50"
-                    : "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-950/50"
-                }
-              >
-                {resultIsPositive ? (
-                  <ArrowUpRight
-                    size={19}
-                    strokeWidth={1.8}
-                    className="text-emerald-400"
-                  />
-                ) : (
-                  <ArrowDownRight
-                    size={19}
-                    strokeWidth={1.8}
-                    className="text-red-400"
-                  />
-                )}
-              </div>
-            </div>
-          </FinCardContent>
+          <FinCardFooter>
+            <span className="text-sm text-zinc-500">
+              {resultIsPositive
+                ? "O período terminou positivo."
+                : "As despesas superaram as receitas."}
+            </span>
+          </FinCardFooter>
         </FinCard>
       </section>
 
@@ -345,8 +389,8 @@ export default function Dashboard() {
           </span>
         </div>
 
-        <FinCard>
-          {accounts.length === 0 ? (
+        {accounts.length === 0 ? (
+          <FinCard>
             <FinCardContent className="px-6 py-12 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900">
                 <Landmark
@@ -364,13 +408,15 @@ export default function Dashboard() {
                 Acesse a página Contas para cadastrar sua primeira conta.
               </p>
             </FinCardContent>
-          ) : (
-            <div className="divide-y divide-zinc-900">
-              {accounts.map((account) => (
-                <div
-                  key={account.id}
-                  className="flex items-center justify-between gap-4 px-4 py-4 transition-colors hover:bg-white/1.5 sm:px-6"
-                >
+          </FinCard>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {accounts.map((account) => (
+              <FinCard
+                key={account.id}
+                variant="interactive"
+              >
+                <FinCardHeader>
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white p-2">
                       <img
@@ -381,32 +427,40 @@ export default function Dashboard() {
                     </div>
 
                     <div className="min-w-0">
-                      <h3 className="truncate font-medium text-zinc-200">
+                      <FinCardTitle className="truncate">
                         {account.name}
-                      </h3>
+                      </FinCardTitle>
 
-                      <p className="mt-1 text-xs text-zinc-600">
+                      <FinCardDescription>
                         {account.type === "bank"
                           ? "Conta bancária"
                           : "Carteira"}
-                      </p>
+                      </FinCardDescription>
                     </div>
                   </div>
+                </FinCardHeader>
 
+                <FinCardContent>
                   <strong
                     className={
                       account.balance < 0
-                        ? "shrink-0 text-sm font-medium text-red-400 sm:text-base"
-                        : "shrink-0 text-sm font-medium text-zinc-200 sm:text-base"
+                        ? "block wrap-break-word text-2xl font-semibold tracking-tight text-red-400"
+                        : "block wrap-break-word text-2xl font-semibold tracking-tight text-zinc-100"
                     }
                   >
                     {formatCurrency(account.balance)}
                   </strong>
-                </div>
-              ))}
-            </div>
-          )}
-        </FinCard>
+                </FinCardContent>
+
+                <FinCardFooter>
+                  <span className="text-sm text-zinc-500">
+                    Saldo disponível
+                  </span>
+                </FinCardFooter>
+              </FinCard>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
