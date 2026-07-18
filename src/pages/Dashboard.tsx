@@ -1,11 +1,6 @@
-import { useLiveQuery } from "dexie-react-hooks";
-import FinStatCard from "../components/FinStatCard/FinStatCard";
-import { formatCurrency } from "../utils/currency";
+import { useMemo, useState } from "react";
 
-import {
-  getCurrentMonthKey,
-  getCurrentMonthName,
-} from "../utils/date";
+import { useLiveQuery } from "dexie-react-hooks";
 
 import {
   ArrowDownCircle,
@@ -15,9 +10,21 @@ import {
 } from "lucide-react";
 
 import Card from "../components/Card/Card";
+import FinStatCard from "../components/FinStatCard/FinStatCard";
 import { db } from "../database/database";
+import FinSelect from "../finui/Select/FinSelect";
+import { formatCurrency } from "../utils/currency";
+import {
+  formatMonthName,
+  getCurrentMonthKey,
+} from "../utils/date";
 
 export default function Dashboard() {
+  const currentMonthKey = getCurrentMonthKey();
+
+  const [selectedMonthKey, setSelectedMonthKey] =
+    useState(currentMonthKey);
+
   const dashboardData = useLiveQuery(async () => {
     const [accounts, transactions] = await Promise.all([
       db.accounts.orderBy("createdAt").reverse().toArray(),
@@ -30,6 +37,38 @@ export default function Dashboard() {
     };
   }, []);
 
+  const monthOptions = useMemo(() => {
+    if (!dashboardData) {
+      return [
+        {
+          value: currentMonthKey,
+          label: formatMonthName(currentMonthKey),
+        },
+      ];
+    }
+
+    const availableMonths = new Set<string>();
+
+    availableMonths.add(currentMonthKey);
+
+    dashboardData.transactions.forEach((transaction) => {
+      const monthKey = transaction.date.slice(0, 7);
+
+      if (/^\d{4}-\d{2}$/.test(monthKey)) {
+        availableMonths.add(monthKey);
+      }
+    });
+
+    return Array.from(availableMonths)
+      .sort((firstMonth, secondMonth) =>
+        secondMonth.localeCompare(firstMonth),
+      )
+      .map((monthKey) => ({
+        value: monthKey,
+        label: formatMonthName(monthKey),
+      }));
+  }, [currentMonthKey, dashboardData]);
+
   if (dashboardData === undefined) {
     return (
       <div className="flex min-h-64 items-center justify-center text-slate-400">
@@ -40,19 +79,17 @@ export default function Dashboard() {
 
   const { accounts, transactions } = dashboardData;
 
-  const currentMonthKey = getCurrentMonthKey();
-
-  const currentMonthTransactions = transactions.filter(
+  const selectedMonthTransactions = transactions.filter(
     (transaction) =>
-      transaction.date.startsWith(currentMonthKey) &&
+      transaction.date.startsWith(selectedMonthKey) &&
       !transaction.isAdjustment,
   );
 
-  const incomeTransactions = currentMonthTransactions.filter(
+  const incomeTransactions = selectedMonthTransactions.filter(
     (transaction) => transaction.type === "income",
   );
 
-  const expenseTransactions = currentMonthTransactions.filter(
+  const expenseTransactions = selectedMonthTransactions.filter(
     (transaction) => transaction.type === "expense",
   );
 
@@ -75,19 +112,29 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold sm:text-4xl">
-          Dashboard
-        </h1>
+      <header className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Dashboard
+          </h1>
 
-        <p className="mt-2 text-slate-400">
-          Resumo financeiro de{" "}
-          <span className="capitalize">
-            {getCurrentMonthName()}
-          </span>
-          .
-        </p>
-      </div>
+          <p className="mt-2 text-slate-400">
+            Seu resumo financeiro do período selecionado.
+          </p>
+        </div>
+
+        <div className="w-full lg:w-64">
+          <FinSelect
+            label="Período"
+            value={selectedMonthKey}
+            options={monthOptions}
+            searchable={false}
+            onChange={(value) => {
+              setSelectedMonthKey(value);
+            }}
+          />
+        </div>
+      </header>
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card

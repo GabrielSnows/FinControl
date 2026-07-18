@@ -7,9 +7,15 @@ export function getCurrentMonthKey(): string {
   return `${year}-${month}`;
 }
 
-export function getCurrentMonthName(): string {
+export function formatMonthName(monthKey: string): string {
+  const [year, month] = monthKey.split("-").map(Number);
+
+  if (!year || !month) {
+    return monthKey;
+  }
+
   return new Intl.DateTimeFormat("pt-BR", {
     month: "long",
     year: "numeric",
-  }).format(new Date());
+  }).format(new Date(year, month - 1, 1));
 }
