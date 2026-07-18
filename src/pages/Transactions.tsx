@@ -71,8 +71,8 @@ export default function Transactions() {
     setTransactionToDelete,
   ] = useState<Transaction | undefined>();
 
-  const [alert, setAlert] =
-    useState<AlertData | undefined>();
+  const [alert, setAlert] = useState<AlertData>();
+  const [alertOpen, setAlertOpen] = useState(false);
 
   const [saving, setSaving] = useState(false);
 
@@ -86,6 +86,12 @@ export default function Transactions() {
       message,
       type: alertType,
     });
+
+    setAlertOpen(true);
+  }
+
+  function handleCloseAlert() {
+    setAlertOpen(false);
   }
 
   function openNewTransaction(
@@ -656,17 +662,12 @@ export default function Transactions() {
       />
 
       <AlertModal
-        open={alert !== undefined}
-        title={
-          alert?.title ??
-          "Ocorreu um erro"
-        }
+        open={alertOpen}
+        title={alert?.title ?? ""}
         message={alert?.message ?? ""}
-        type={alert?.type ?? "error"}
-        onClose={() =>
-          setAlert(undefined)
-        }
-      />
+        type={alert?.type}
+        onClose={handleCloseAlert}
+      />    
     </div>
   );
 }
