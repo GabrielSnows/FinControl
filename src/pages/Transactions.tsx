@@ -410,49 +410,36 @@ export default function Transactions() {
 
       {transactions.length === 0 ? (
         <FinCard>
-          <FinCardContent className="px-6 py-14 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900">
+          <FinCardContent className="px-6 py-16 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900/70 shadow-sm">
               <ReceiptText
-                size={25}
-                strokeWidth={1.8}
-                className="text-zinc-500"
+                size={27}
+                strokeWidth={1.7}
+                className="text-zinc-400"
               />
             </div>
 
-            <h2 className="mt-4 font-semibold text-zinc-100">
-              Nenhuma movimentação
-              cadastrada
+            <h2 className="mt-5 text-lg font-semibold tracking-tight text-zinc-100">
+              Nenhuma movimentação cadastrada
             </h2>
 
-            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-zinc-500">
-              Cadastre sua primeira
-              receita ou despesa para
-              começar a acompanhar suas
-              finanças.
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
+              Registre sua primeira receita ou despesa para começar a
+              acompanhar a movimentação das suas contas.
             </p>
 
-            <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+            <div className="mt-7 flex flex-col justify-center gap-2 sm:flex-row">
               <FinButton
                 variant="secondary"
-                leftIcon={
-                  <ArrowUpRight />
-                }
-                onClick={() =>
-                  openNewTransaction(
-                    "income",
-                  )
-                }
+                leftIcon={<ArrowUpRight />}
+                onClick={() => openNewTransaction("income")}
               >
                 Nova receita
               </FinButton>
 
               <FinButton
                 leftIcon={<Plus />}
-                onClick={() =>
-                  openNewTransaction(
-                    "expense",
-                  )
-                }
+                onClick={() => openNewTransaction("expense")}
               >
                 Nova despesa
               </FinButton>
@@ -461,7 +448,7 @@ export default function Transactions() {
         </FinCard>
       ) : (
         <section>
-          <div className="mb-4 flex items-end justify-between gap-4">
+          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
                 Histórico
@@ -475,159 +462,129 @@ export default function Transactions() {
             </div>
           </div>
 
-          <FinCard>
-            <div className="divide-y divide-zinc-900">
-              {transactions.map(
-                (transaction) => {
-                  const isIncome =
-                    transaction.type ===
-                    "income";
+          <div className="space-y-3">
+            {transactions.map((transaction) => {
+              const isIncome = transaction.type === "income";
+              const transactionTitle =
+                transaction.description || transaction.category;
 
-                  const transactionTitle =
-                    transaction.description ||
-                    transaction.category;
-
-                  return (
-                    <article
-                      key={
-                        transaction.id
-                      }
-                      className="group flex flex-col gap-4 px-4 py-4 transition-colors hover:bg-white/1.5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
-                    >
-                      <div className="flex min-w-0 items-start gap-3 sm:items-center">
+              return (
+                <FinCard
+                  key={transaction.id}
+                  className="group transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-700 hover:shadow-lg hover:shadow-black/10"
+                >
+                  <FinCardContent className="p-0">
+                    <article className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+                      <div className="flex min-w-0 items-start gap-3.5 sm:items-center">
                         <div
                           className={
                             isIncome
-                              ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-950/50"
-                              : "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-950/50"
+                              ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-900/60 bg-emerald-950/40"
+                              : "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-red-900/60 bg-red-950/40"
                           }
                         >
                           {isIncome ? (
                             <ArrowUpRight
-                              size={20}
-                              strokeWidth={
-                                1.8
-                              }
+                              size={21}
+                              strokeWidth={1.8}
                               className="text-emerald-400"
                             />
                           ) : (
                             <ArrowDownLeft
-                              size={20}
-                              strokeWidth={
-                                1.8
-                              }
+                              size={21}
+                              strokeWidth={1.8}
                               className="text-red-400"
                             />
                           )}
                         </div>
 
                         <div className="min-w-0">
-                          <h3 className="truncate font-medium text-zinc-200">
-                            {
-                              transactionTitle
-                            }
-                          </h3>
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <h3 className="min-w-0 truncate font-medium text-zinc-100">
+                              {transactionTitle}
+                            </h3>
 
-                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-600">
-                            <span>
-                              {
-                                transaction.category
+                            <span
+                              className={
+                                isIncome
+                                  ? "rounded-full border border-emerald-900/60 bg-emerald-950/30 px-2 py-0.5 text-[11px] font-medium text-emerald-400"
+                                  : "rounded-full border border-red-900/60 bg-red-950/30 px-2 py-0.5 text-[11px] font-medium text-red-400"
                               }
+                            >
+                              {isIncome ? "Receita" : "Despesa"}
                             </span>
+                          </div>
+
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
+                            <span>{transaction.category}</span>
 
                             <span
                               aria-hidden="true"
-                              className="text-zinc-800"
+                              className="text-zinc-700"
                             >
                               •
                             </span>
 
                             <span>
-                              {getAccountName(
-                                transaction.accountId,
-                              )}
+                              {getAccountName(transaction.accountId)}
                             </span>
 
                             <span
                               aria-hidden="true"
-                              className="text-zinc-800"
+                              className="text-zinc-700"
                             >
                               •
                             </span>
 
-                            <time
-                              dateTime={
-                                transaction.date
-                              }
-                            >
-                              {formatDate(
-                                transaction.date,
-                              )}
+                            <time dateTime={transaction.date}>
+                              {formatDate(transaction.date)}
                             </time>
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between gap-3 pl-14 sm:justify-end sm:pl-0">
+                      <div className="flex items-center justify-between gap-3 pl-15.5 sm:justify-end sm:pl-0">
                         <strong
                           className={
                             isIncome
-                              ? "wrap-break-word text-sm font-semibold text-emerald-400 sm:text-base"
-                              : "wrap-break-word text-sm font-semibold text-red-400 sm:text-base"
+                              ? "text-base font-semibold tracking-tight text-emerald-400"
+                              : "text-base font-semibold tracking-tight text-red-400"
                           }
                         >
-                          {isIncome
-                            ? "+"
-                            : "-"}{" "}
-                          {formatCurrency(
-                            transaction.amount,
-                          )}
+                          {isIncome ? "+" : "-"}{" "}
+                          {formatCurrency(transaction.amount)}
                         </strong>
 
-                        <div className="flex shrink-0 items-center">
+                        <div className="flex shrink-0 items-center gap-1 sm:opacity-60 sm:transition-opacity sm:group-hover:opacity-100">
                           <button
                             type="button"
                             aria-label={`Editar ${transactionTitle}`}
-                            onClick={() =>
-                              openEditTransaction(
-                                transaction,
-                              )
-                            }
-                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-600 transition hover:bg-zinc-900 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
+                            title="Editar movimentação"
+                            onClick={() => openEditTransaction(transaction)}
+                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
                           >
-                            <Pencil
-                              size={16}
-                              strokeWidth={
-                                1.8
-                              }
-                            />
+                            <Pencil size={16} strokeWidth={1.8} />
                           </button>
 
                           <button
                             type="button"
                             aria-label={`Excluir ${transactionTitle}`}
+                            title="Excluir movimentação"
                             onClick={() =>
-                              setTransactionToDelete(
-                                transaction,
-                              )
+                              setTransactionToDelete(transaction)
                             }
-                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-600 transition hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
+                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
                           >
-                            <Trash2
-                              size={16}
-                              strokeWidth={
-                                1.8
-                              }
-                            />
+                            <Trash2 size={16} strokeWidth={1.8} />
                           </button>
                         </div>
                       </div>
                     </article>
-                  );
-                },
-              )}
-            </div>
-          </FinCard>
+                  </FinCardContent>
+                </FinCard>
+              );
+            })}
+          </div>
         </section>
       )}
 
