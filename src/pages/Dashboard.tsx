@@ -9,6 +9,7 @@ import {
   WalletCards,
 } from "lucide-react";
 
+import FinPageHeader from "../finui/PageHeader/FinPageHeader";
 import Card from "../components/Card/Card";
 import FinStatCard from "../components/FinStatCard/FinStatCard";
 import { db } from "../database/database";
@@ -112,29 +113,23 @@ export default function Dashboard() {
 
   return (
     <div>
-      <header className="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Dashboard
-          </h1>
-
-          <p className="mt-2 text-slate-400">
-            Seu resumo financeiro do período selecionado.
-          </p>
-        </div>
-
-        <div className="w-full lg:w-64">
-          <FinSelect
-            label="Período"
-            value={selectedMonthKey}
-            options={monthOptions}
-            searchable={false}
-            onChange={(value) => {
-              setSelectedMonthKey(value);
-            }}
-          />
-        </div>
-      </header>
+      <FinPageHeader
+        title="Dashboard"
+        description="Seu resumo financeiro do período selecionado."
+        action={
+          <div className="w-full lg:w-64">
+            <FinSelect
+              label="Período"
+              value={selectedMonthKey}
+              options={monthOptions}
+              searchable={false}
+              onChange={(value) => {
+                setSelectedMonthKey(value);
+              }}
+            />
+          </div>
+        }
+      />
 
       <div className="grid gap-5 lg:grid-cols-3">
         <Card
