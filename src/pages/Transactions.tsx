@@ -1,27 +1,39 @@
 import { useState } from "react";
+
 import { useLiveQuery } from "dexie-react-hooks";
 
 import {
-  ArrowDownCircle,
-  ArrowUpCircle,
+  ArrowDownLeft,
+  ArrowUpRight,
   Pencil,
-  Receipt,
+  Plus,
+  ReceiptText,
   Trash2,
 } from "lucide-react";
 
-import TransactionModal from "../components/TransactionModal/TransactionModal";
-import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import AlertModal from "../components/AlertModal/AlertModal";
+import type { AlertType } from "../components/AlertModal/AlertModal";
+
+import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+
+import TransactionModal from "../components/TransactionModal/TransactionModal";
+import type { TransactionFormData } from "../components/TransactionModal/TransactionModal";
 
 import { db } from "../database/database";
+
+import FinButton from "../finui/Button/FinButton";
+
+import {
+  FinCard,
+  FinCardContent,
+} from "../finui/Card/FinCard";
+
+import FinPageHeader from "../finui/PageHeader/FinPageHeader";
 
 import type {
   Transaction,
   TransactionType,
 } from "../types/Transaction";
-
-import type { TransactionFormData } from "../components/TransactionModal/TransactionModal";
-import type { AlertType } from "../components/AlertModal/AlertModal";
 
 type AlertData = {
   title: string;
@@ -49,13 +61,19 @@ export default function Transactions() {
   const [modalType, setModalType] =
     useState<TransactionType>("expense");
 
-  const [editingTransaction, setEditingTransaction] =
-    useState<Transaction>();
+  const [
+    editingTransaction,
+    setEditingTransaction,
+  ] = useState<Transaction | undefined>();
 
-  const [transactionToDelete, setTransactionToDelete] =
-    useState<Transaction>();
+  const [
+    transactionToDelete,
+    setTransactionToDelete,
+  ] = useState<Transaction | undefined>();
 
-  const [alert, setAlert] = useState<AlertData>();
+  const [alert, setAlert] =
+    useState<AlertData | undefined>();
+
   const [saving, setSaving] = useState(false);
 
   function showAlert(
@@ -114,7 +132,9 @@ export default function Transactions() {
         db.transactions,
         async () => {
           const selectedAccount =
-            await db.accounts.get(formData.accountId);
+            await db.accounts.get(
+              formData.accountId,
+            );
 
           if (!selectedAccount) {
             throw new Error(
@@ -134,28 +154,39 @@ export default function Transactions() {
               );
             }
 
-            const oldImpact = getBalanceImpact(
-              editingTransaction.type,
-              editingTransaction.amount,
+            const oldImpact =
+              getBalanceImpact(
+                editingTransaction.type,
+                editingTransaction.amount,
+              );
+
+            await db.accounts.update(
+              oldAccount.id,
+              {
+                balance:
+                  oldAccount.balance -
+                  oldImpact,
+              },
             );
 
-            await db.accounts.update(oldAccount.id, {
-              balance: oldAccount.balance - oldImpact,
-            });
-
             const updatedDestinationAccount =
-              await db.accounts.get(formData.accountId);
+              await db.accounts.get(
+                formData.accountId,
+              );
 
-            if (!updatedDestinationAccount) {
+            if (
+              !updatedDestinationAccount
+            ) {
               throw new Error(
                 "A nova conta não existe.",
               );
             }
 
-            const newImpact = getBalanceImpact(
-              formData.type,
-              formData.amount,
-            );
+            const newImpact =
+              getBalanceImpact(
+                formData.type,
+                formData.amount,
+              );
 
             await db.accounts.update(
               updatedDestinationAccount.id,
@@ -169,10 +200,13 @@ export default function Transactions() {
             await db.transactions.update(
               editingTransaction.id,
               {
-                accountId: formData.accountId,
+                accountId:
+                  formData.accountId,
                 type: formData.type,
-                category: formData.category,
-                description: formData.description,
+                category:
+                  formData.category,
+                description:
+                  formData.description,
                 amount: formData.amount,
                 date: formData.date,
               },
@@ -181,10 +215,11 @@ export default function Transactions() {
             return;
           }
 
-          const balanceImpact = getBalanceImpact(
-            formData.type,
-            formData.amount,
-          );
+          const balanceImpact =
+            getBalanceImpact(
+              formData.type,
+              formData.amount,
+            );
 
           await db.accounts.update(
             selectedAccount.id,
@@ -195,18 +230,25 @@ export default function Transactions() {
             },
           );
 
-          const newTransaction: Transaction = {
-            id: Date.now(),
-            accountId: formData.accountId,
-            type: formData.type,
-            category: formData.category,
-            description: formData.description,
-            amount: formData.amount,
-            date: formData.date,
-            createdAt: new Date().toISOString(),
-          };
+          const newTransaction: Transaction =
+            {
+              id: Date.now(),
+              accountId:
+                formData.accountId,
+              type: formData.type,
+              category:
+                formData.category,
+              description:
+                formData.description,
+              amount: formData.amount,
+              date: formData.date,
+              createdAt:
+                new Date().toISOString(),
+            };
 
-          await db.transactions.add(newTransaction);
+          await db.transactions.add(
+            newTransaction,
+          );
         },
       );
 
@@ -236,9 +278,10 @@ export default function Transactions() {
         db.accounts,
         db.transactions,
         async () => {
-          const account = await db.accounts.get(
-            transactionToDelete.accountId,
-          );
+          const account =
+            await db.accounts.get(
+              transactionToDelete.accountId,
+            );
 
           if (!account) {
             throw new Error(
@@ -246,14 +289,20 @@ export default function Transactions() {
             );
           }
 
-          const impact = getBalanceImpact(
-            transactionToDelete.type,
-            transactionToDelete.amount,
-          );
+          const impact =
+            getBalanceImpact(
+              transactionToDelete.type,
+              transactionToDelete.amount,
+            );
 
-          await db.accounts.update(account.id, {
-            balance: account.balance - impact,
-          });
+          await db.accounts.update(
+            account.id,
+            {
+              balance:
+                account.balance -
+                impact,
+            },
+          );
 
           await db.transactions.delete(
             transactionToDelete.id,
@@ -278,22 +327,29 @@ export default function Transactions() {
   }
 
   function formatCurrency(value: number) {
-    return value.toLocaleString("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    });
+    return value.toLocaleString(
+      "pt-BR",
+      {
+        style: "currency",
+        currency: "BRL",
+      },
+    );
   }
 
   function formatDate(value: string) {
-    const [year, month, day] = value.split("-");
+    const [year, month, day] =
+      value.split("-");
 
     return `${day}/${month}/${year}`;
   }
 
-  function getAccountName(accountId: number) {
+  function getAccountName(
+    accountId: number,
+  ) {
     return (
       accounts?.find(
-        (account) => account.id === accountId,
+        (account) =>
+          account.id === accountId,
       )?.name ?? "Conta removida"
     );
   }
@@ -303,7 +359,7 @@ export default function Transactions() {
     transactions === undefined
   ) {
     return (
-      <div className="flex min-h-64 items-center justify-center text-slate-400">
+      <div className="flex min-h-64 items-center justify-center text-zinc-500">
         Carregando movimentações...
       </div>
     );
@@ -311,171 +367,305 @@ export default function Transactions() {
 
   return (
     <div>
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">
-            Movimentações
-          </h1>
+      <FinPageHeader
+        title="Movimentações"
+        description="Registre e acompanhe todas as suas receitas e despesas."
+        action={
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <FinButton
+              variant="secondary"
+              leftIcon={
+                <ArrowUpRight />
+              }
+              onClick={() =>
+                openNewTransaction(
+                  "income",
+                )
+              }
+              className="w-full sm:w-auto"
+            >
+              Nova receita
+            </FinButton>
 
-          <p className="mt-2 text-slate-400">
-            Registre todas as suas receitas e despesas.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() =>
-              openNewTransaction("income")
-            }
-            className="flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition hover:bg-emerald-700"
-          >
-            <ArrowUpCircle size={20} />
-            Receita
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              openNewTransaction("expense")
-            }
-            className="flex cursor-pointer items-center gap-2 rounded-xl bg-red-600 px-5 py-3 font-medium text-white transition hover:bg-red-700"
-          >
-            <ArrowDownCircle size={20} />
-            Despesa
-          </button>
-        </div>
-      </div>
+            <FinButton
+              leftIcon={<Plus />}
+              onClick={() =>
+                openNewTransaction(
+                  "expense",
+                )
+              }
+              className="w-full sm:w-auto"
+            >
+              Nova despesa
+            </FinButton>
+          </div>
+        }
+      />
 
       {transactions.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/60 px-6 py-16 text-center">
-          <Receipt
-            size={50}
-            className="mx-auto text-slate-500"
-          />
+        <FinCard>
+          <FinCardContent className="px-6 py-14 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-900">
+              <ReceiptText
+                size={25}
+                strokeWidth={1.8}
+                className="text-zinc-500"
+              />
+            </div>
 
-          <h2 className="mt-5 text-xl font-semibold">
-            Nenhuma movimentação cadastrada
-          </h2>
+            <h2 className="mt-4 font-semibold text-zinc-100">
+              Nenhuma movimentação
+              cadastrada
+            </h2>
 
-          <p className="mt-2 text-slate-400">
-            Cadastre sua primeira receita ou despesa.
-          </p>
-        </div>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-zinc-500">
+              Cadastre sua primeira
+              receita ou despesa para
+              começar a acompanhar suas
+              finanças.
+            </p>
+
+            <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+              <FinButton
+                variant="secondary"
+                leftIcon={
+                  <ArrowUpRight />
+                }
+                onClick={() =>
+                  openNewTransaction(
+                    "income",
+                  )
+                }
+              >
+                Nova receita
+              </FinButton>
+
+              <FinButton
+                leftIcon={<Plus />}
+                onClick={() =>
+                  openNewTransaction(
+                    "expense",
+                  )
+                }
+              >
+                Nova despesa
+              </FinButton>
+            </div>
+          </FinCardContent>
+        </FinCard>
       ) : (
-        <div className="space-y-3">
-          {transactions.map((transaction) => (
-            <article
-              key={transaction.id}
-              className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-800 p-5"
-            >
-              <div className="flex min-w-0 items-center gap-4">
-                <div
-                  className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${
-                    transaction.type === "income"
-                      ? "bg-emerald-950 text-emerald-400"
-                      : "bg-red-950 text-red-400"
-                  }`}
-                >
-                  {transaction.type === "income" ? (
-                    <ArrowUpCircle size={24} />
-                  ) : (
-                    <ArrowDownCircle size={24} />
-                  )}
-                </div>
+        <section>
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
+                Histórico
+              </h2>
 
-                <div className="min-w-0">
-                  <h2 className="truncate font-semibold">
-                    {transaction.description ||
-                      transaction.category}
-                  </h2>
+              <p className="mt-1 text-sm text-zinc-500">
+                {transactions.length === 1
+                  ? "1 movimentação registrada"
+                  : `${transactions.length} movimentações registradas`}
+              </p>
+            </div>
+          </div>
 
-                  <p className="mt-1 text-sm text-slate-400">
-                    {transaction.category}
-                    {" • "}
-                    {getAccountName(
-                      transaction.accountId,
-                    )}
-                    {" • "}
-                    {formatDate(transaction.date)}
-                  </p>
-                </div>
-              </div>
+          <FinCard>
+            <div className="divide-y divide-zinc-900">
+              {transactions.map(
+                (transaction) => {
+                  const isIncome =
+                    transaction.type ===
+                    "income";
 
-              <div className="flex items-center gap-4">
-                <strong
-                  className={
-                    transaction.type === "income"
-                      ? "text-emerald-400"
-                      : "text-red-400"
-                  }
-                >
-                  {transaction.type === "income"
-                    ? "+"
-                    : "-"}
-                  {formatCurrency(transaction.amount)}
-                </strong>
+                  const transactionTitle =
+                    transaction.description ||
+                    transaction.category;
 
-                <div className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openEditTransaction(transaction)
-                    }
-                    aria-label="Editar movimentação"
-                    className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
-                  >
-                    <Pencil size={18} />
-                  </button>
+                  return (
+                    <article
+                      key={
+                        transaction.id
+                      }
+                      className="group flex flex-col gap-4 px-4 py-4 transition-colors hover:bg-white/1.5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                    >
+                      <div className="flex min-w-0 items-start gap-3 sm:items-center">
+                        <div
+                          className={
+                            isIncome
+                              ? "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-950/50"
+                              : "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-950/50"
+                          }
+                        >
+                          {isIncome ? (
+                            <ArrowUpRight
+                              size={20}
+                              strokeWidth={
+                                1.8
+                              }
+                              className="text-emerald-400"
+                            />
+                          ) : (
+                            <ArrowDownLeft
+                              size={20}
+                              strokeWidth={
+                                1.8
+                              }
+                              className="text-red-400"
+                            />
+                          )}
+                        </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setTransactionToDelete(transaction)
-                    }
-                    aria-label="Excluir movimentação"
-                    className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-red-950 hover:text-red-400"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
+                        <div className="min-w-0">
+                          <h3 className="truncate font-medium text-zinc-200">
+                            {
+                              transactionTitle
+                            }
+                          </h3>
+
+                          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-600">
+                            <span>
+                              {
+                                transaction.category
+                              }
+                            </span>
+
+                            <span
+                              aria-hidden="true"
+                              className="text-zinc-800"
+                            >
+                              •
+                            </span>
+
+                            <span>
+                              {getAccountName(
+                                transaction.accountId,
+                              )}
+                            </span>
+
+                            <span
+                              aria-hidden="true"
+                              className="text-zinc-800"
+                            >
+                              •
+                            </span>
+
+                            <time
+                              dateTime={
+                                transaction.date
+                              }
+                            >
+                              {formatDate(
+                                transaction.date,
+                              )}
+                            </time>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between gap-3 pl-14 sm:justify-end sm:pl-0">
+                        <strong
+                          className={
+                            isIncome
+                              ? "wrap-break-word text-sm font-semibold text-emerald-400 sm:text-base"
+                              : "wrap-break-word text-sm font-semibold text-red-400 sm:text-base"
+                          }
+                        >
+                          {isIncome
+                            ? "+"
+                            : "-"}{" "}
+                          {formatCurrency(
+                            transaction.amount,
+                          )}
+                        </strong>
+
+                        <div className="flex shrink-0 items-center">
+                          <button
+                            type="button"
+                            aria-label={`Editar ${transactionTitle}`}
+                            onClick={() =>
+                              openEditTransaction(
+                                transaction,
+                              )
+                            }
+                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-600 transition hover:bg-zinc-900 hover:text-zinc-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
+                          >
+                            <Pencil
+                              size={16}
+                              strokeWidth={
+                                1.8
+                              }
+                            />
+                          </button>
+
+                          <button
+                            type="button"
+                            aria-label={`Excluir ${transactionTitle}`}
+                            onClick={() =>
+                              setTransactionToDelete(
+                                transaction,
+                              )
+                            }
+                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-600 transition hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
+                          >
+                            <Trash2
+                              size={16}
+                              strokeWidth={
+                                1.8
+                              }
+                            />
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                },
+              )}
+            </div>
+          </FinCard>
+        </section>
       )}
 
       <TransactionModal
         open={modalOpen}
         type={modalType}
+        transaction={
+          editingTransaction
+        }
         accounts={accounts}
-        transaction={editingTransaction}
         saving={saving}
         onClose={closeModal}
         onSave={saveTransaction}
       />
 
       <ConfirmModal
-        open={Boolean(transactionToDelete)}
+        open={
+          transactionToDelete !==
+          undefined
+        }
         title="Excluir movimentação"
-        message={`Tem certeza de que deseja excluir "${
-          transactionToDelete?.description ||
-          transactionToDelete?.category ||
-          ""
-        }"? O saldo da conta será corrigido automaticamente.`}
-        confirmText="Excluir movimentação"
-        onConfirm={confirmDeleteTransaction}
+        message="Tem certeza que deseja excluir esta movimentação? O saldo da conta será atualizado automaticamente."
+        confirmText="Excluir"
+        onConfirm={
+          confirmDeleteTransaction
+        }
         onCancel={() =>
-          setTransactionToDelete(undefined)
+          setTransactionToDelete(
+            undefined,
+          )
         }
       />
 
       <AlertModal
-        open={Boolean(alert)}
-        title={alert?.title ?? ""}
+        open={alert !== undefined}
+        title={
+          alert?.title ??
+          "Ocorreu um erro"
+        }
         message={alert?.message ?? ""}
-        type={alert?.type}
-        onClose={() => setAlert(undefined)}
+        type={alert?.type ?? "error"}
+        onClose={() =>
+          setAlert(undefined)
+        }
       />
     </div>
   );
