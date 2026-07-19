@@ -1,8 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-
 import { useLiveQuery } from "dexie-react-hooks";
-
 import {
   Pencil,
   Plus,
@@ -12,11 +10,29 @@ import {
 } from "lucide-react";
 
 import BankSelect from "../components/BankSelect/BankSelect";
-import Modal from "../components/Modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import AlertModal from "../components/AlertModal/AlertModal";
-import Button from "../components/ui/Button";
-import Input from "../components/ui/Input";
+
+import FinButton from "../finui/Button/FinButton";
+import FinInput from "../finui/Input/FinInput";
+import FinPageHeader from "../finui/PageHeader/FinPageHeader";
+
+import {
+  FinCard,
+  FinCardContent,
+  FinCardDescription,
+  FinCardFooter,
+  FinCardHeader,
+  FinCardTitle,
+} from "../finui/Card/FinCard";
+
+import FinModal, {
+  FinModalContent,
+  FinModalDescription,
+  FinModalFooter,
+  FinModalHeader,
+  FinModalTitle,
+} from "../finui/Modal/FinModal";
 
 import { db } from "../database/database";
 
@@ -67,15 +83,11 @@ export default function Accounts() {
     [],
   );
 
-  const [accountModalOpen, setAccountModalOpen] =
-    useState(false);
-
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
   const [adjustmentModalOpen, setAdjustmentModalOpen] =
     useState(false);
 
-  const [selectedBank, setSelectedBank] =
-    useState<Bank>();
-
+  const [selectedBank, setSelectedBank] = useState<Bank>();
   const [balance, setBalance] = useState("");
 
   const [editingAccountId, setEditingAccountId] =
@@ -90,8 +102,8 @@ export default function Accounts() {
   const [adjustedBalance, setAdjustedBalance] =
     useState("");
 
-  const [alert, setAlert] =
-    useState<AlertData>();
+  const [alert, setAlert] = useState<AlertData>();
+  const [alertOpen, setAlertOpen] = useState(false);
 
   const [saving, setSaving] = useState(false);
 
@@ -105,10 +117,12 @@ export default function Accounts() {
       message,
       type,
     });
+
+    setAlertOpen(true);
   }
 
   function closeAlert() {
-    setAlert(undefined);
+    setAlertOpen(false);
   }
 
   function openNewAccountModal() {
@@ -315,361 +329,453 @@ export default function Accounts() {
     }
   }
 
-  async function requestDeleteAccount(
-    account: Account,
-  ) {
-    try {
-      const accountTransactions =
-        await db.transactions
-          .where("accountId")
-          .equals(account.id)
-          .count();
-
-      if (accountTransactions > 0) {
-        showAlert(
-          "Conta com movimentações",
-          "Essa conta possui movimentações. Exclua primeiro as receitas, despesas e ajustes relacionados a ela.",
-          "warning",
-        );
-
-        return;
-      }
-
-      setAccountToDelete(account);
-    } catch (error) {
-      console.error(
-        "Erro ao verificar movimentações:",
-        error,
-      );
-
-      showAlert(
-        "Não foi possível verificar",
-        "Ocorreu um erro ao verificar as movimentações dessa conta.",
-        "error",
-      );
-    }
+  function requestDeleteAccount(account: Account) {
+    setAccountToDelete(account);
   }
 
   async function confirmDeleteAccount() {
     if (!accountToDelete) return;
 
     try {
-      await db.accounts.delete(
-        accountToDelete.id,
+      setSaving(true);
+
+      await db.transaction(
+        "rw",
+        db.accounts,
+        db.transactions,
+        async () => {
+          await db.transactions
+            .where("accountId")
+            .equals(accountToDelete.id)
+            .delete();
+
+          await db.accounts.delete(accountToDelete.id);
+        },
       );
 
       setAccountToDelete(undefined);
     } catch (error) {
-      console.error(
-        "Erro ao excluir conta:",
-        error,
-      );
+      console.error("Erro ao excluir conta:", error);
 
       setAccountToDelete(undefined);
 
       showAlert(
         "Não foi possível excluir",
-        "Ocorreu um erro ao excluir a conta. Tente novamente.",
+        "Ocorreu um erro ao excluir a conta e suas movimentações. Tente novamente.",
         "error",
       );
+    } finally {
+      setSaving(false);
     }
   }
 
   if (accounts === undefined) {
     return (
-      <div className="flex min-h-64 items-center justify-center text-slate-400">
-        Carregando contas...
+      <div className="flex min-h-64 items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-zinc-800 border-t-zinc-300" />
+
+          <p className="mt-3 text-sm text-zinc-500">
+            Carregando contas...
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">
-            Contas
-          </h1>
-
-          <p className="mt-2 text-slate-400">
-            Gerencie seus bancos, carteiras digitais
-            e dinheiro.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={openNewAccountModal}
-          className="flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition hover:bg-emerald-700"
-        >
-          <Plus size={19} />
-          Nova Conta
-        </button>
-      </div>
+      <FinPageHeader
+        title="Contas"
+        description="Gerencie seus bancos, carteiras digitais e dinheiro."
+        action={
+          <FinButton
+            leftIcon={<Plus />}
+            onClick={openNewAccountModal}
+          >
+            Nova conta
+          </FinButton>
+        }
+      />
 
       {accounts.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/60 px-6 py-14 text-center">
-          <WalletCards
-            size={48}
-            className="mx-auto text-slate-500"
-          />
+        <FinCard>
+          <FinCardContent className="px-6 py-16 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900/70">
+              <WalletCards
+                size={27}
+                strokeWidth={1.7}
+                className="text-zinc-400"
+              />
+            </div>
 
-          <h2 className="mt-4 text-xl font-semibold">
-            Nenhuma conta cadastrada
-          </h2>
+            <h2 className="mt-5 text-lg font-semibold tracking-tight text-zinc-100">
+              Nenhuma conta cadastrada
+            </h2>
 
-          <p className="mt-2 text-slate-400">
-            Cadastre sua primeira conta para começar
-            a controlar seus saldos.
-          </p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
+              Cadastre sua primeira conta para
+              começar a controlar seus saldos e
+              registrar suas movimentações.
+            </p>
 
-          <button
-            type="button"
-            onClick={openNewAccountModal}
-            className="mt-6 cursor-pointer rounded-xl bg-emerald-600 px-5 py-3 font-medium transition hover:bg-emerald-700"
-          >
-            Criar primeira conta
-          </button>
-        </div>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {accounts.map((account) => (
-            <article
-              key={account.id}
-              className="rounded-2xl border border-slate-700 bg-slate-800 p-5 shadow-lg"
+            <FinButton
+              className="mt-7"
+              leftIcon={<Plus />}
+              onClick={openNewAccountModal}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-4">
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-white p-2">
-                    <img
-                      src={account.image}
-                      alt={account.name}
-                      className="h-full w-full object-contain"
+              Criar primeira conta
+            </FinButton>
+          </FinCardContent>
+        </FinCard>
+      ) : (
+        <section>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
+              Suas contas
+            </h2>
+
+            <p className="mt-1 text-sm text-zinc-500">
+              {accounts.length === 1
+                ? "1 conta cadastrada"
+                : `${accounts.length} contas cadastradas`}
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {accounts.map((account) => {
+              const isNegative =
+                account.balance < 0;
+
+              return (
+                <FinCard
+                  key={account.id}
+                  variant="interactive"
+                  className="group flex min-h-60 flex-col"
+                >
+                  <FinCardHeader className="flex-row items-start justify-between gap-4">
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-white p-2">
+                        <img
+                          src={account.image}
+                          alt=""
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+
+                      <div className="min-w-0">
+                        <FinCardTitle className="truncate text-base">
+                          {account.name}
+                        </FinCardTitle>
+
+                        <FinCardDescription className="mt-1">
+                          {account.type === "bank"
+                            ? "Conta bancária"
+                            : "Carteira"}
+                        </FinCardDescription>
+                      </div>
+                    </div>
+
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
+                      <button
+                        type="button"
+                        title="Editar conta"
+                        aria-label={`Editar ${account.name}`}
+                        onClick={() =>
+                          openEditAccountModal(
+                            account,
+                          )
+                        }
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
+                      >
+                        <Pencil
+                          size={16}
+                          strokeWidth={1.8}
+                        />
+                      </button>
+
+                      <button
+                        type="button"
+                        title="Ajustar saldo"
+                        aria-label={`Ajustar saldo de ${account.name}`}
+                        onClick={() =>
+                          openAdjustmentModal(
+                            account,
+                          )
+                        }
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-amber-950/60 hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-900"
+                      >
+                        <Scale
+                          size={16}
+                          strokeWidth={1.8}
+                        />
+                      </button>
+
+                      <button
+                        type="button"
+                        title="Excluir conta"
+                        aria-label={`Excluir ${account.name}`}
+                        onClick={() =>
+                          requestDeleteAccount(
+                            account,
+                          )
+                        }
+                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
+                      >
+                        <Trash2
+                          size={16}
+                          strokeWidth={1.8}
+                        />
+                      </button>
+                    </div>
+                  </FinCardHeader>
+
+                  <FinCardContent className="mt-auto">
+                    <p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-600">
+                      Saldo disponível
+                    </p>
+
+                    <strong
+                      className={`mt-2 block text-2xl font-semibold tracking-tight ${
+                        isNegative
+                          ? "text-red-400"
+                          : "text-zinc-100"
+                      }`}
+                    >
+                      {formatCurrency(
+                        account.balance,
+                      )}
+                    </strong>
+                  </FinCardContent>
+
+                  <FinCardFooter className="border-t border-zinc-900">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openAdjustmentModal(account)
+                      }
+                      className="flex cursor-pointer items-center gap-2 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-200"
+                    >
+                      <Scale
+                        size={14}
+                        strokeWidth={1.8}
+                      />
+
+                      Corrigir saldo
+                    </button>
+                  </FinCardFooter>
+                </FinCard>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      <FinModal
+        open={accountModalOpen}
+        onClose={closeAccountModal}
+        size="md"
+        closeOnOverlayClick={!saving}
+        closeOnEscape={!saving}
+      >
+        <form onSubmit={saveAccount}>
+          <FinModalHeader>
+            <FinModalTitle>
+              {editingAccountId === null
+                ? "Nova conta"
+                : "Editar conta"}
+            </FinModalTitle>
+
+            <FinModalDescription>
+              {editingAccountId === null
+                ? "Selecione o banco ou carteira e informe o saldo inicial."
+                : "Altere o banco ou carteira exibido nesta conta."}
+            </FinModalDescription>
+          </FinModalHeader>
+
+          <FinModalContent className="space-y-5">
+            <div>
+              <p className="mb-2.5 text-sm font-medium text-zinc-300">
+                Banco ou carteira
+              </p>
+
+              <BankSelect
+                value={selectedBank}
+                onChange={setSelectedBank}
+              />
+            </div>
+
+            {editingAccountId === null ? (
+              <FinInput
+                label="Saldo inicial"
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={balance}
+                onChange={(event) =>
+                  setBalance(event.target.value)
+                }
+                helperText="Use vírgula para informar os centavos."
+              />
+            ) : (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950">
+                    <Scale
+                      size={16}
+                      strokeWidth={1.8}
+                      className="text-zinc-500"
                     />
                   </div>
 
-                  <div className="min-w-0">
-                    <h2 className="truncate text-lg font-semibold">
-                      {account.name}
-                    </h2>
-
-                    <p className="mt-1 text-sm text-slate-400">
-                      {account.type === "bank"
-                        ? "Banco"
-                        : "Carteira"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 gap-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openEditAccountModal(account)
-                    }
-                    title="Editar conta"
-                    aria-label={`Editar ${account.name}`}
-                    className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
-                  >
-                    <Pencil size={18} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openAdjustmentModal(account)
-                    }
-                    title="Ajustar saldo"
-                    aria-label={`Ajustar saldo de ${account.name}`}
-                    className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-amber-950 hover:text-amber-400"
-                  >
-                    <Scale size={18} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      requestDeleteAccount(account)
-                    }
-                    title="Excluir conta"
-                    aria-label={`Excluir ${account.name}`}
-                    className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-red-950 hover:text-red-400"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <p className="text-sm leading-6 text-zinc-500">
+                    Para corrigir o valor
+                    disponível, salve as alterações
+                    e use a opção{" "}
+                    <strong className="font-medium text-zinc-300">
+                      Ajustar saldo
+                    </strong>{" "}
+                    no card da conta.
+                  </p>
                 </div>
               </div>
+            )}
+          </FinModalContent>
 
-              <div className="mt-6">
-                <p className="text-sm text-slate-400">
-                  Saldo atual
-                </p>
-
-                <strong
-                  className={`mt-1 block text-2xl ${
-                    account.balance < 0
-                      ? "text-red-400"
-                      : "text-white"
-                  }`}
-                >
-                  {formatCurrency(account.balance)}
-                </strong>
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
-      <Modal
-        open={accountModalOpen}
-        title={
-          editingAccountId === null
-            ? "Nova Conta"
-            : "Editar Conta"
-        }
-        onClose={closeAccountModal}
-      >
-        <form
-          onSubmit={saveAccount}
-          className="space-y-6"
-        >
-          <div>
-            <p className="mb-3 text-sm font-medium text-slate-300">
-              Selecione o banco ou carteira
-            </p>
-
-            <BankSelect
-              value={selectedBank}
-              onChange={setSelectedBank}
-            />
-          </div>
-
-          {editingAccountId === null && (
-            <Input
-              label="Saldo inicial"
-              type="text"
-              placeholder="0,00"
-              value={balance}
-              onChange={setBalance}
-            />
-          )}
-
-          {editingAccountId !== null && (
-            <p className="rounded-xl bg-slate-900 p-4 text-sm text-slate-400">
-              Para corrigir o valor disponível,
-              use a opção
-              <strong className="text-slate-200">
-                {" "}
-                Ajustar saldo
-              </strong>
-              .
-            </p>
-          )}
-
-          <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
-            <Button
+          <FinModalFooter>
+            <FinButton
               variant="secondary"
               onClick={closeAccountModal}
               disabled={saving}
             >
               Cancelar
-            </Button>
+            </FinButton>
 
-            <Button
+            <FinButton
               type="submit"
-              disabled={!selectedBank || saving}
+              disabled={!selectedBank}
+              loading={saving}
             >
-              {saving
-                ? "Salvando..."
-                : editingAccountId === null
-                  ? "Salvar conta"
-                  : "Salvar alterações"}
-            </Button>
-          </div>
+              {editingAccountId === null
+                ? "Salvar conta"
+                : "Salvar alterações"}
+            </FinButton>
+          </FinModalFooter>
         </form>
-      </Modal>
+      </FinModal>
 
-      <Modal
+      <FinModal
         open={adjustmentModalOpen}
-        title="Ajustar saldo"
         onClose={closeAdjustmentModal}
+        size="sm"
+        closeOnOverlayClick={!saving}
+        closeOnEscape={!saving}
       >
-        <form
-          onSubmit={saveBalanceAdjustment}
-          className="space-y-6"
-        >
-          {adjustingAccount && (
-            <div className="rounded-xl bg-slate-900 p-4">
-              <p className="text-sm text-slate-400">
-                Conta
-              </p>
+        <form onSubmit={saveBalanceAdjustment}>
+          <FinModalHeader>
+            <FinModalTitle>
+              Ajustar saldo
+            </FinModalTitle>
 
-              <strong className="mt-1 block">
-                {adjustingAccount.name}
-              </strong>
+            <FinModalDescription>
+              Corrija o saldo disponível sem
+              apagar o histórico da conta.
+            </FinModalDescription>
+          </FinModalHeader>
 
-              <p className="mt-4 text-sm text-slate-400">
-                Saldo registrado atualmente
-              </p>
+          <FinModalContent className="space-y-5">
+            {adjustingAccount && (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-white p-2">
+                    <img
+                      src={adjustingAccount.image}
+                      alt=""
+                      className="h-full w-full object-contain"
+                    />
+                  </div>
 
-              <strong className="mt-1 block text-xl">
-                {formatCurrency(
-                  adjustingAccount.balance,
-                )}
-              </strong>
-            </div>
-          )}
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-200">
+                      {adjustingAccount.name}
+                    </p>
 
-          <Input
-            label="Novo saldo atual"
-            type="text"
-            placeholder="0,00"
-            value={adjustedBalance}
-            onChange={setAdjustedBalance}
-          />
+                    <p className="mt-0.5 text-xs text-zinc-500">
+                      Saldo registrado atualmente
+                    </p>
+                  </div>
+                </div>
 
-          <p className="text-sm text-slate-400">
-            A diferença será registrada
-            automaticamente no histórico como um
-            ajuste de saldo.
-          </p>
+                <strong
+                  className={`mt-4 block text-xl font-semibold tracking-tight ${
+                    adjustingAccount.balance < 0
+                      ? "text-red-400"
+                      : "text-zinc-100"
+                  }`}
+                >
+                  {formatCurrency(
+                    adjustingAccount.balance,
+                  )}
+                </strong>
+              </div>
+            )}
 
-          <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
-            <Button
+            <FinInput
+              label="Novo saldo atual"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={adjustedBalance}
+              onChange={(event) =>
+                setAdjustedBalance(
+                  event.target.value,
+                )
+              }
+            />
+
+            <p className="text-sm leading-6 text-zinc-500">
+              A diferença será registrada
+              automaticamente no histórico como
+              uma receita ou despesa de ajuste.
+            </p>
+          </FinModalContent>
+
+          <FinModalFooter>
+            <FinButton
               variant="secondary"
               onClick={closeAdjustmentModal}
               disabled={saving}
             >
               Cancelar
-            </Button>
+            </FinButton>
 
-            <Button
+            <FinButton
               type="submit"
-              disabled={saving}
+              loading={saving}
             >
-              {saving
-                ? "Ajustando..."
-                : "Confirmar ajuste"}
-            </Button>
-          </div>
+              Confirmar ajuste
+            </FinButton>
+          </FinModalFooter>
         </form>
-      </Modal>
+      </FinModal>
 
       <ConfirmModal
         open={Boolean(accountToDelete)}
-        title="Excluir conta"
+        title="Excluir conta e movimentações"
         message={`Tem certeza de que deseja excluir a conta ${
           accountToDelete?.name ?? ""
-        }?`}
-        confirmText="Excluir conta"
+        }? Todas as receitas, despesas e ajustes vinculados a ela também serão excluídos. Esta ação não pode ser desfeita.`}
+        confirmText="Excluir tudo"
         onConfirm={confirmDeleteAccount}
-        onCancel={() =>
-          setAccountToDelete(undefined)
-        }
+        onCancel={() => {
+          if (!saving) {
+            setAccountToDelete(undefined);
+          }
+        }}
       />
-
+      
       <AlertModal
-        open={Boolean(alert)}
+        open={alertOpen}
         title={alert?.title ?? ""}
         message={alert?.message ?? ""}
         type={alert?.type}
