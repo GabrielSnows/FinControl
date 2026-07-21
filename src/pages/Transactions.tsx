@@ -94,6 +94,10 @@ export default function Transactions() {
     setAlertOpen(false);
   }
 
+  function clearAlert() {
+    setAlert(undefined);
+  }
+
   function openNewTransaction(
     type: TransactionType,
   ) {
@@ -114,7 +118,6 @@ export default function Transactions() {
     if (saving) return;
 
     setModalOpen(false);
-    setEditingTransaction(undefined);
   }
 
   function getBalanceImpact(
@@ -180,9 +183,7 @@ export default function Transactions() {
                 formData.accountId,
               );
 
-            if (
-              !updatedDestinationAccount
-            ) {
+            if (!updatedDestinationAccount) {
               throw new Error(
                 "A nova conta não existe.",
               );
@@ -236,21 +237,20 @@ export default function Transactions() {
             },
           );
 
-          const newTransaction: Transaction =
-            {
-              id: Date.now(),
-              accountId:
-                formData.accountId,
-              type: formData.type,
-              category:
-                formData.category,
-              description:
-                formData.description,
-              amount: formData.amount,
-              date: formData.date,
-              createdAt:
-                new Date().toISOString(),
-            };
+          const newTransaction: Transaction = {
+            id: Date.now(),
+            accountId:
+              formData.accountId,
+            type: formData.type,
+            category:
+              formData.category,
+            description:
+              formData.description,
+            amount: formData.amount,
+            date: formData.date,
+            createdAt:
+              new Date().toISOString(),
+          };
 
           await db.transactions.add(
             newTransaction,
@@ -259,7 +259,6 @@ export default function Transactions() {
       );
 
       setModalOpen(false);
-      setEditingTransaction(undefined);
     } catch (error) {
       console.error(
         "Erro ao salvar movimentação:",
@@ -346,6 +345,10 @@ export default function Transactions() {
     const [year, month, day] =
       value.split("-");
 
+    if (!year || !month || !day) {
+      return value;
+    }
+
     return `${day}/${month}/${year}`;
   }
 
@@ -365,8 +368,14 @@ export default function Transactions() {
     transactions === undefined
   ) {
     return (
-      <div className="flex min-h-64 items-center justify-center text-zinc-500">
-        Carregando movimentações...
+      <div className="flex min-h-64 items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-zinc-800 border-t-zinc-300" />
+
+          <p className="mt-3 text-sm text-zinc-500">
+            Carregando movimentações...
+          </p>
+        </div>
       </div>
     );
   }
@@ -377,12 +386,10 @@ export default function Transactions() {
         title="Movimentações"
         description="Registre e acompanhe todas as suas receitas e despesas."
         action={
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
             <FinButton
               variant="secondary"
-              leftIcon={
-                <ArrowUpRight />
-              }
+              leftIcon={<ArrowUpRight />}
               onClick={() =>
                 openNewTransaction(
                   "income",
@@ -390,7 +397,7 @@ export default function Transactions() {
               }
               className="w-full sm:w-auto"
             >
-              Nova receita
+              Receita
             </FinButton>
 
             <FinButton
@@ -402,7 +409,7 @@ export default function Transactions() {
               }
               className="w-full sm:w-auto"
             >
-              Nova despesa
+              Despesa
             </FinButton>
           </div>
         }
@@ -410,10 +417,10 @@ export default function Transactions() {
 
       {transactions.length === 0 ? (
         <FinCard>
-          <FinCardContent className="px-6 py-16 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900/70 shadow-sm">
+          <FinCardContent className="px-5 py-12 text-center sm:px-6 sm:py-16">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900/70 sm:h-16 sm:w-16">
               <ReceiptText
-                size={27}
+                size={26}
                 strokeWidth={1.7}
                 className="text-zinc-400"
               />
@@ -424,166 +431,268 @@ export default function Transactions() {
             </h2>
 
             <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
-              Registre sua primeira receita ou despesa para começar a
-              acompanhar a movimentação das suas contas.
+              Registre sua primeira receita ou
+              despesa para começar a acompanhar
+              suas contas.
             </p>
 
-            <div className="mt-7 flex flex-col justify-center gap-2 sm:flex-row">
+            <div className="mt-7 grid grid-cols-2 gap-2 sm:flex sm:justify-center">
               <FinButton
                 variant="secondary"
                 leftIcon={<ArrowUpRight />}
-                onClick={() => openNewTransaction("income")}
+                onClick={() =>
+                  openNewTransaction(
+                    "income",
+                  )
+                }
               >
-                Nova receita
+                Receita
               </FinButton>
 
               <FinButton
                 leftIcon={<Plus />}
-                onClick={() => openNewTransaction("expense")}
+                onClick={() =>
+                  openNewTransaction(
+                    "expense",
+                  )
+                }
               >
-                Nova despesa
+                Despesa
               </FinButton>
             </div>
           </FinCardContent>
         </FinCard>
       ) : (
         <section>
-          <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
-                Histórico
-              </h2>
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
+              Histórico
+            </h2>
 
-              <p className="mt-1 text-sm text-zinc-500">
-                {transactions.length === 1
-                  ? "1 movimentação registrada"
-                  : `${transactions.length} movimentações registradas`}
-              </p>
-            </div>
+            <p className="mt-1 text-sm text-zinc-500">
+              {transactions.length === 1
+                ? "1 movimentação registrada"
+                : `${transactions.length} movimentações registradas`}
+            </p>
           </div>
 
           <div className="space-y-3">
-            {transactions.map((transaction) => {
-              const isIncome = transaction.type === "income";
-              const transactionTitle =
-                transaction.description || transaction.category;
+            {transactions.map(
+              (transaction) => {
+                const isIncome =
+                  transaction.type ===
+                  "income";
 
-              return (
-                <FinCard
-                  key={transaction.id}
-                  className="group transition-all duration-200 hover:-translate-y-0.5 hover:border-zinc-700 hover:shadow-lg hover:shadow-black/10"
-                >
-                  <FinCardContent className="p-0">
-                    <article className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-                      <div className="flex min-w-0 items-start gap-3.5 sm:items-center">
-                        <div
-                          className={
-                            isIncome
-                              ? "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-emerald-900/60 bg-emerald-950/40"
-                              : "flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-red-900/60 bg-red-950/40"
-                          }
-                        >
-                          {isIncome ? (
-                            <ArrowUpRight
-                              size={21}
-                              strokeWidth={1.8}
-                              className="text-emerald-400"
-                            />
-                          ) : (
-                            <ArrowDownLeft
-                              size={21}
-                              strokeWidth={1.8}
-                              className="text-red-400"
-                            />
-                          )}
-                        </div>
+                const transactionTitle =
+                  transaction.description ||
+                  transaction.category;
 
-                        <div className="min-w-0">
-                          <div className="flex min-w-0 flex-wrap items-center gap-2">
-                            <h3 className="min-w-0 truncate font-medium text-zinc-100">
-                              {transactionTitle}
-                            </h3>
-
-                            <span
-                              className={
+                return (
+                  <FinCard
+                    key={transaction.id}
+                    className="group transition-colors duration-200 hover:border-zinc-700 hover:bg-zinc-950/90"
+                  >
+                    <FinCardContent className="p-0">
+                      <article className="p-4 sm:flex sm:items-center sm:justify-between sm:gap-5 sm:p-5">
+                        <div className="flex items-start justify-between gap-3 sm:min-w-0 sm:flex-1 sm:items-center sm:justify-start">
+                          <div className="flex min-w-0 flex-1 items-start gap-3 sm:items-center">
+                            <div
+                              className={[
+                                "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border sm:h-12 sm:w-12 sm:rounded-2xl",
                                 isIncome
-                                  ? "rounded-full border border-emerald-900/60 bg-emerald-950/30 px-2 py-0.5 text-[11px] font-medium text-emerald-400"
-                                  : "rounded-full border border-red-900/60 bg-red-950/30 px-2 py-0.5 text-[11px] font-medium text-red-400"
+                                  ? "border-emerald-900/60 bg-emerald-950/40"
+                                  : "border-red-900/60 bg-red-950/40",
+                              ].join(" ")}
+                            >
+                              {isIncome ? (
+                                <ArrowUpRight
+                                  size={20}
+                                  strokeWidth={1.8}
+                                  className="text-emerald-400"
+                                />
+                              ) : (
+                                <ArrowDownLeft
+                                  size={20}
+                                  strokeWidth={1.8}
+                                  className="text-red-400"
+                                />
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <div className="flex min-w-0 items-center gap-2">
+                                <h3 className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-100 sm:text-base">
+                                  {
+                                    transactionTitle
+                                  }
+                                </h3>
+
+                                <span
+                                  className={[
+                                    "hidden shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium sm:inline-flex",
+                                    isIncome
+                                      ? "border-emerald-900/60 bg-emerald-950/30 text-emerald-400"
+                                      : "border-red-900/60 bg-red-950/30 text-red-400",
+                                  ].join(" ")}
+                                >
+                                  {isIncome
+                                    ? "Receita"
+                                    : "Despesa"}
+                                </span>
+                              </div>
+
+                              <p className="mt-1 truncate text-xs text-zinc-500 sm:text-sm">
+                                {
+                                  transaction.category
+                                }
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex shrink-0 items-center gap-0.5 sm:hidden">
+                            <button
+                              type="button"
+                              aria-label={`Editar ${transactionTitle}`}
+                              title="Editar movimentação"
+                              onClick={() =>
+                                openEditTransaction(
+                                  transaction,
+                                )
                               }
+                              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
                             >
-                              {isIncome ? "Receita" : "Despesa"}
-                            </span>
-                          </div>
+                              <Pencil
+                                size={16}
+                                strokeWidth={
+                                  1.8
+                                }
+                              />
+                            </button>
 
-                          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-zinc-500">
-                            <span>{transaction.category}</span>
-
-                            <span
-                              aria-hidden="true"
-                              className="text-zinc-700"
+                            <button
+                              type="button"
+                              aria-label={`Excluir ${transactionTitle}`}
+                              title="Excluir movimentação"
+                              onClick={() =>
+                                setTransactionToDelete(
+                                  transaction,
+                                )
+                              }
+                              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
                             >
-                              •
-                            </span>
-
-                            <span>
-                              {getAccountName(transaction.accountId)}
-                            </span>
-
-                            <span
-                              aria-hidden="true"
-                              className="text-zinc-700"
-                            >
-                              •
-                            </span>
-
-                            <time dateTime={transaction.date}>
-                              {formatDate(transaction.date)}
-                            </time>
+                              <Trash2
+                                size={16}
+                                strokeWidth={
+                                  1.8
+                                }
+                              />
+                            </button>
                           </div>
                         </div>
-                      </div>
 
-                      <div className="flex items-center justify-between gap-3 pl-15.5 sm:justify-end sm:pl-0">
-                        <strong
-                          className={
-                            isIncome
-                              ? "text-base font-semibold tracking-tight text-emerald-400"
-                              : "text-base font-semibold tracking-tight text-red-400"
-                          }
-                        >
-                          {isIncome ? "+" : "-"}{" "}
-                          {formatCurrency(transaction.amount)}
-                        </strong>
+                        <div className="mt-4 border-t border-zinc-900 pt-3 sm:mt-0 sm:flex sm:shrink-0 sm:items-center sm:gap-4 sm:border-0 sm:pt-0">
+                          <div className="flex items-end justify-between gap-4 sm:block sm:text-right">
+                            <div className="min-w-0 text-xs text-zinc-500 sm:hidden">
+                              <p className="truncate">
+                                {getAccountName(
+                                  transaction.accountId,
+                                )}
+                              </p>
 
-                        <div className="flex shrink-0 items-center gap-1 sm:opacity-60 sm:transition-opacity sm:group-hover:opacity-100">
-                          <button
-                            type="button"
-                            aria-label={`Editar ${transactionTitle}`}
-                            title="Editar movimentação"
-                            onClick={() => openEditTransaction(transaction)}
-                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
-                          >
-                            <Pencil size={16} strokeWidth={1.8} />
-                          </button>
+                              <time
+                                dateTime={
+                                  transaction.date
+                                }
+                                className="mt-1 block"
+                              >
+                                {formatDate(
+                                  transaction.date,
+                                )}
+                              </time>
+                            </div>
 
-                          <button
-                            type="button"
-                            aria-label={`Excluir ${transactionTitle}`}
-                            title="Excluir movimentação"
-                            onClick={() =>
-                              setTransactionToDelete(transaction)
-                            }
-                            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
-                          >
-                            <Trash2 size={16} strokeWidth={1.8} />
-                          </button>
+                            <div className="hidden text-xs text-zinc-500 sm:block">
+                              <p>
+                                {getAccountName(
+                                  transaction.accountId,
+                                )}
+                              </p>
+
+                              <time
+                                dateTime={
+                                  transaction.date
+                                }
+                                className="mt-1 block"
+                              >
+                                {formatDate(
+                                  transaction.date,
+                                )}
+                              </time>
+                            </div>
+
+                            <strong
+                              className={[
+                                "shrink-0 text-base font-semibold tracking-tight sm:mt-2 sm:block",
+                                isIncome
+                                  ? "text-emerald-400"
+                                  : "text-red-400",
+                              ].join(" ")}
+                            >
+                              {isIncome
+                                ? "+"
+                                : "-"}{" "}
+                              {formatCurrency(
+                                transaction.amount,
+                              )}
+                            </strong>
+                          </div>
+
+                          <div className="hidden shrink-0 items-center gap-0.5 opacity-60 transition-opacity group-hover:opacity-100 sm:flex">
+                            <button
+                              type="button"
+                              aria-label={`Editar ${transactionTitle}`}
+                              title="Editar movimentação"
+                              onClick={() =>
+                                openEditTransaction(
+                                  transaction,
+                                )
+                              }
+                              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
+                            >
+                              <Pencil
+                                size={16}
+                                strokeWidth={
+                                  1.8
+                                }
+                              />
+                            </button>
+
+                            <button
+                              type="button"
+                              aria-label={`Excluir ${transactionTitle}`}
+                              title="Excluir movimentação"
+                              onClick={() =>
+                                setTransactionToDelete(
+                                  transaction,
+                                )
+                              }
+                              className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
+                            >
+                              <Trash2
+                                size={16}
+                                strokeWidth={
+                                  1.8
+                                }
+                              />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    </article>
-                  </FinCardContent>
-                </FinCard>
-              );
-            })}
+                      </article>
+                    </FinCardContent>
+                  </FinCard>
+                );
+              },
+            )}
           </div>
         </section>
       )}
@@ -591,9 +700,7 @@ export default function Transactions() {
       <TransactionModal
         open={modalOpen}
         type={modalType}
-        transaction={
-          editingTransaction
-        }
+        transaction={editingTransaction}
         accounts={accounts}
         saving={saving}
         onClose={closeModal}
@@ -624,7 +731,8 @@ export default function Transactions() {
         message={alert?.message ?? ""}
         type={alert?.type}
         onClose={handleCloseAlert}
-      />    
+        onClosed={clearAlert}
+      />
     </div>
   );
 }
