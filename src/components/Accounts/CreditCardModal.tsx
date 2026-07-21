@@ -5,6 +5,7 @@ import { db } from "../../database/database";
 import type { Bank } from "../../data/banks";
 import FinButton from "../../finui/Button/FinButton";
 import FinInput from "../../finui/Input/FinInput";
+import FinSelect from "../../finui/Select/FinSelect";
 import FinModal, {
   FinModalContent,
   FinModalDescription,
@@ -25,13 +26,13 @@ type CreditCardModalProps = {
   onError: (title: string, message: string) => void;
 };
 
-const creditCardBrands: CreditCardBrand[] = [
-  "Visa",
-  "Mastercard",
-  "Elo",
-  "American-Express",
-  "Hipercard",
-  "Other",
+const creditCardBrandOptions = [
+  { value: "Visa", label: "Visa" },
+  { value: "Mastercard", label: "Mastercard" },
+  { value: "Elo", label: "Elo" },
+  { value: "American Express", label: "American Express" },
+  { value: "Hipercard", label: "Hipercard" },
+  { value: "Outro", label: "Outro" },
 ];
 
 function parseCurrencyValue(value: string) {
@@ -195,29 +196,16 @@ export default function CreditCardModal({
             helperText="Use um nome que facilite identificar este cartão."
           />
 
-          <div>
-            <label
-              htmlFor="credit-card-brand"
-              className="mb-2.5 block text-sm font-medium text-zinc-300"
-            >
-              Bandeira
-            </label>
-
-            <select
-              id="credit-card-brand"
-              value={brand}
-              onChange={(event) =>
-                setBrand(event.target.value as CreditCardBrand)
-              }
-              className="h-11 w-full cursor-pointer rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 text-sm text-zinc-100 outline-none transition-colors hover:border-zinc-700 focus:border-zinc-600 focus:ring-2 focus:ring-zinc-800"
-            >
-              {creditCardBrands.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </div>
+          <FinSelect
+            label="Bandeira"
+            value={brand}
+            options={creditCardBrandOptions}
+            searchable={false}
+            placeholder="Selecione a bandeira"
+            onChange={(value) =>
+              setBrand(value as CreditCardBrand)
+            }
+          />
 
           <FinInput
             label="Limite total"
@@ -231,13 +219,24 @@ export default function CreditCardModal({
 
           <FinInput
             label="Dia do vencimento"
-            type="number"
+            type="text"
             inputMode="numeric"
-            min="1"
-            max="31"
+            autoComplete="off"
+            maxLength={2}
             placeholder="10"
             value={dueDay}
-            onChange={(event) => setDueDay(event.target.value)}
+            onChange={(event) => {
+              const numericValue = event.target.value.replace(/\D/g, "");
+
+              if (numericValue === "") {
+                setDueDay("");
+                return;
+              }
+
+              if (Number(numericValue) <= 31) {
+                setDueDay(numericValue);
+              }
+            }}
             helperText="Informe apenas o dia, entre 1 e 31."
           />
         </FinModalContent>

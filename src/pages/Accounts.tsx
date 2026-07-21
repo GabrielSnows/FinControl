@@ -3,10 +3,10 @@ import { useState } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { CreditCard as CreditCardIcon, Landmark, Plus } from "lucide-react";
 
-import AccountCard from "../components/Accounts/AccountCard";
-import AccountModal from "../components/Accounts/AccountModal";
-import CreditCardCard from "../components/Accounts/CreditCardCard";
-import CreditCardModal from "../components/Accounts/CreditCardModal";
+import AccountCard from "../components/accounts/AccountCard";
+import AccountModal from "../components/accounts/AccountModal";
+import CreditCardCard from "../components/accounts/CreditCardCard";
+import CreditCardModal from "../components/accounts/CreditCardModal";
 import AlertModal from "../components/AlertModal/AlertModal";
 import type { AlertType } from "../components/AlertModal/AlertModal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
