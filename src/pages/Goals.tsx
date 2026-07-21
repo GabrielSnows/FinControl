@@ -94,6 +94,7 @@ export default function Goals() {
   const [currentAmount, setCurrentAmount] = useState("");
   const [newProgressAmount, setNewProgressAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   function resetGoalForm() {
     setEditingGoalId(null);
@@ -143,6 +144,11 @@ export default function Goals() {
     if (saving) return;
 
     setProgressModalOpen(false);
+  }
+
+  function requestDeleteGoal(goal: Goal) {
+    setGoalToDelete(goal);
+    setConfirmOpen(true);
   }
 
   async function saveGoal(event: FormEvent<HTMLFormElement>) {
@@ -271,11 +277,18 @@ export default function Goals() {
 
     try {
       setSaving(true);
+
       await db.goals.delete(goalToDelete.id);
-      setGoalToDelete(undefined);
+
+      setConfirmOpen(false);
     } catch (error) {
-      console.error("Erro ao excluir objetivo:", error);
-      setGoalToDelete(undefined);
+      console.error(
+        "Erro ao excluir objetivo:",
+        error,
+      );
+
+      setConfirmOpen(false);
+
       showAlert(
         "Não foi possível excluir",
         "Ocorreu um erro ao excluir o objetivo.",
@@ -407,7 +420,7 @@ export default function Goals() {
                     onEdit={openEditGoalModal}
                     onUpdateProgress={openProgressModal}
                     onToggleStatus={toggleGoalStatus}
-                    onDelete={setGoalToDelete}
+                    onDelete={requestDeleteGoal}
                   />
                 ))}
               </div>
@@ -435,7 +448,7 @@ export default function Goals() {
                     onEdit={openEditGoalModal}
                     onUpdateProgress={openProgressModal}
                     onToggleStatus={toggleGoalStatus}
-                    onDelete={setGoalToDelete}
+                    onDelete={requestDeleteGoal}
                   />
                 ))}
               </div>
@@ -582,7 +595,7 @@ export default function Goals() {
       </FinModal>
 
       <ConfirmModal
-        open={Boolean(goalToDelete)}
+        open={confirmOpen}
         title="Excluir objetivo"
         message={`Tem certeza de que deseja excluir o objetivo "${
           goalToDelete?.title ?? ""
@@ -590,7 +603,12 @@ export default function Goals() {
         confirmText="Excluir objetivo"
         onConfirm={confirmDeleteGoal}
         onCancel={() => {
-          if (!saving) setGoalToDelete(undefined);
+          if (!saving) {
+            setConfirmOpen(false);
+          }
+        }}
+        onClosed={() => {
+          setGoalToDelete(undefined);
         }}
       />
 
@@ -650,7 +668,9 @@ function GoalCard({
   onToggleStatus,
   onDelete,
 }: GoalCardProps) {
-  const progress = calculateProgress(goal);
+  const progress = goal.completed
+  ? 100
+  : calculateProgress(goal);
   const remaining = Math.max(goal.targetAmount - goal.currentAmount, 0);
 
   return (

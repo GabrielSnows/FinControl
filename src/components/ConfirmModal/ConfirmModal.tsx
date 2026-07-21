@@ -17,6 +17,7 @@ type ConfirmModalProps = {
   danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  onClosed?: () => void;
 };
 
 export default function ConfirmModal({
@@ -28,11 +29,13 @@ export default function ConfirmModal({
   danger = true,
   onConfirm,
   onCancel,
+  onClosed,
 }: ConfirmModalProps) {
   return (
     <FinModal
       open={open}
       onClose={onCancel}
+      onClosed={onClosed}
       size="sm"
       showCloseButton={false}
     >
