@@ -4,7 +4,6 @@ import { useLiveQuery } from "dexie-react-hooks";
 import {
   Pencil,
   Plus,
-  Scale,
   Trash2,
   WalletCards,
 } from "lucide-react";
@@ -21,7 +20,6 @@ import {
   FinCard,
   FinCardContent,
   FinCardDescription,
-  FinCardFooter,
   FinCardHeader,
   FinCardTitle,
 } from "../finui/Card/FinCard";
@@ -84,8 +82,6 @@ export default function Accounts() {
   );
 
   const [accountModalOpen, setAccountModalOpen] = useState(false);
-  const [adjustmentModalOpen, setAdjustmentModalOpen] =
-    useState(false);
 
   const [selectedBank, setSelectedBank] = useState<Bank>();
   const [balance, setBalance] = useState("");
@@ -93,14 +89,8 @@ export default function Accounts() {
   const [editingAccountId, setEditingAccountId] =
     useState<number | null>(null);
 
-  const [adjustingAccount, setAdjustingAccount] =
-    useState<Account>();
-
   const [accountToDelete, setAccountToDelete] =
     useState<Account>();
-
-  const [adjustedBalance, setAdjustedBalance] =
-    useState("");
 
   const [alert, setAlert] = useState<AlertData>();
   const [alertOpen, setAlertOpen] = useState(false);
@@ -142,7 +132,7 @@ export default function Accounts() {
       type: account.type,
     });
 
-    setBalance("");
+    setBalance(String(account.balance));
     setAccountModalOpen(true);
   }
 
@@ -153,20 +143,6 @@ export default function Accounts() {
     setSelectedBank(undefined);
     setBalance("");
     setEditingAccountId(null);
-  }
-
-  function openAdjustmentModal(account: Account) {
-    setAdjustingAccount(account);
-    setAdjustedBalance(String(account.balance));
-    setAdjustmentModalOpen(true);
-  }
-
-  function closeAdjustmentModal() {
-    if (saving) return;
-
-    setAdjustmentModalOpen(false);
-    setAdjustingAccount(undefined);
-    setAdjustedBalance("");
   }
 
   async function saveAccount(
@@ -184,33 +160,80 @@ export default function Accounts() {
       return;
     }
 
+    const numericBalance = parseCurrencyValue(balance);
+
+    if (
+      balance.trim() === "" ||
+      Number.isNaN(numericBalance)
+    ) {
+      showAlert(
+        "Saldo inválido",
+        editingAccountId === null
+          ? "Digite um saldo inicial válido para criar a conta."
+          : "Digite um saldo válido para atualizar a conta.",
+        "warning",
+      );
+
+      return;
+    }
+
     try {
       setSaving(true);
 
       if (editingAccountId !== null) {
-        await db.accounts.update(editingAccountId, {
-          bankId: selectedBank.id,
-          name: selectedBank.name,
-          image: selectedBank.image,
-          type: selectedBank.type,
-        });
-      } else {
-        const numericBalance =
-          parseCurrencyValue(balance);
+        const existingAccount =
+          await db.accounts.get(editingAccountId);
 
-        if (
-          balance.trim() === "" ||
-          Number.isNaN(numericBalance)
-        ) {
-          showAlert(
-            "Saldo inválido",
-            "Digite um saldo inicial válido para criar a conta.",
-            "warning",
-          );
-
-          return;
+        if (!existingAccount) {
+          throw new Error("Conta não encontrada.");
         }
 
+        const difference =
+          numericBalance - existingAccount.balance;
+
+        await db.transaction(
+          "rw",
+          db.accounts,
+          db.transactions,
+          async () => {
+            await db.accounts.update(
+              editingAccountId,
+              {
+                bankId: selectedBank.id,
+                name: selectedBank.name,
+                image: selectedBank.image,
+                type: selectedBank.type,
+                balance: numericBalance,
+              },
+            );
+
+            if (difference !== 0) {
+              const adjustmentTransaction: Transaction = {
+                id: Date.now(),
+                accountId: editingAccountId,
+                type:
+                  difference > 0
+                    ? "income"
+                    : "expense",
+                category: "Ajuste de saldo",
+                description: `Saldo corrigido de ${formatCurrency(
+                  existingAccount.balance,
+                )} para ${formatCurrency(
+                  numericBalance,
+                )}`,
+                amount: Math.abs(difference),
+                date: getLocalDate(),
+                createdAt: new Date().toISOString(),
+                isAdjustment: true,
+              };
+
+              await db.transactions.add(
+                adjustmentTransaction,
+              );
+            }
+          },
+        );
+      } else {
         const newAccount: Account = {
           id: Date.now(),
           bankId: selectedBank.id,
@@ -234,94 +257,6 @@ export default function Accounts() {
       showAlert(
         "Não foi possível salvar",
         "Ocorreu um erro ao salvar a conta. Tente novamente.",
-        "error",
-      );
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function saveBalanceAdjustment(
-    event: FormEvent<HTMLFormElement>,
-  ) {
-    event.preventDefault();
-
-    if (!adjustingAccount) return;
-
-    const newBalance =
-      parseCurrencyValue(adjustedBalance);
-
-    if (
-      adjustedBalance.trim() === "" ||
-      Number.isNaN(newBalance)
-    ) {
-      showAlert(
-        "Saldo inválido",
-        "Digite um saldo válido para realizar o ajuste.",
-        "warning",
-      );
-
-      return;
-    }
-
-    const difference =
-      newBalance - adjustingAccount.balance;
-
-    if (difference === 0) {
-      closeAdjustmentModal();
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      await db.transaction(
-        "rw",
-        db.accounts,
-        db.transactions,
-        async () => {
-          await db.accounts.update(
-            adjustingAccount.id,
-            {
-              balance: newBalance,
-            },
-          );
-
-          const adjustmentTransaction: Transaction = {
-            id: Date.now(),
-            accountId: adjustingAccount.id,
-            type:
-              difference > 0
-                ? "income"
-                : "expense",
-            category: "Ajuste de saldo",
-            description: `Saldo corrigido de ${formatCurrency(
-              adjustingAccount.balance,
-            )} para ${formatCurrency(newBalance)}`,
-            amount: Math.abs(difference),
-            date: getLocalDate(),
-            createdAt: new Date().toISOString(),
-            isAdjustment: true,
-          };
-
-          await db.transactions.add(
-            adjustmentTransaction,
-          );
-        },
-      );
-
-      setAdjustmentModalOpen(false);
-      setAdjustingAccount(undefined);
-      setAdjustedBalance("");
-    } catch (error) {
-      console.error(
-        "Erro ao ajustar saldo:",
-        error,
-      );
-
-      showAlert(
-        "Não foi possível ajustar",
-        "Ocorreu um erro ao ajustar o saldo da conta. Tente novamente.",
         "error",
       );
     } finally {
@@ -496,23 +431,6 @@ export default function Accounts() {
 
                       <button
                         type="button"
-                        title="Ajustar saldo"
-                        aria-label={`Ajustar saldo de ${account.name}`}
-                        onClick={() =>
-                          openAdjustmentModal(
-                            account,
-                          )
-                        }
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-amber-950/60 hover:text-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-900"
-                      >
-                        <Scale
-                          size={16}
-                          strokeWidth={1.8}
-                        />
-                      </button>
-
-                      <button
-                        type="button"
                         title="Excluir conta"
                         aria-label={`Excluir ${account.name}`}
                         onClick={() =>
@@ -547,23 +465,6 @@ export default function Accounts() {
                       )}
                     </strong>
                   </FinCardContent>
-
-                  <FinCardFooter className="border-t border-zinc-900">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        openAdjustmentModal(account)
-                      }
-                      className="flex cursor-pointer items-center gap-2 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-200"
-                    >
-                      <Scale
-                        size={14}
-                        strokeWidth={1.8}
-                      />
-
-                      Corrigir saldo
-                    </button>
-                  </FinCardFooter>
                 </FinCard>
               );
             })}
@@ -605,9 +506,12 @@ export default function Accounts() {
               />
             </div>
 
-            {editingAccountId === null ? (
               <FinInput
-                label="Saldo inicial"
+                label={
+                  editingAccountId === null
+                    ? "Saldo inicial"
+                    : "Saldo atual"
+                }
                 type="text"
                 inputMode="decimal"
                 placeholder="0,00"
@@ -615,31 +519,12 @@ export default function Accounts() {
                 onChange={(event) =>
                   setBalance(event.target.value)
                 }
-                helperText="Use vírgula para informar os centavos."
+                helperText={
+                  editingAccountId === null
+                    ? "Use vírgula para informar os centavos."
+                    : "Caso o saldo seja alterado, o FinControl registrará automaticamente um ajuste no histórico."
+                }
               />
-            ) : (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-950">
-                    <Scale
-                      size={16}
-                      strokeWidth={1.8}
-                      className="text-zinc-500"
-                    />
-                  </div>
-
-                  <p className="text-sm leading-6 text-zinc-500">
-                    Para corrigir o valor
-                    disponível, salve as alterações
-                    e use a opção{" "}
-                    <strong className="font-medium text-zinc-300">
-                      Ajustar saldo
-                    </strong>{" "}
-                    no card da conta.
-                  </p>
-                </div>
-              </div>
-            )}
           </FinModalContent>
 
           <FinModalFooter>
@@ -659,101 +544,6 @@ export default function Accounts() {
               {editingAccountId === null
                 ? "Salvar conta"
                 : "Salvar alterações"}
-            </FinButton>
-          </FinModalFooter>
-        </form>
-      </FinModal>
-
-      <FinModal
-        open={adjustmentModalOpen}
-        onClose={closeAdjustmentModal}
-        size="sm"
-        closeOnOverlayClick={!saving}
-        closeOnEscape={!saving}
-      >
-        <form onSubmit={saveBalanceAdjustment}>
-          <FinModalHeader>
-            <FinModalTitle>
-              Ajustar saldo
-            </FinModalTitle>
-
-            <FinModalDescription>
-              Corrija o saldo disponível sem
-              apagar o histórico da conta.
-            </FinModalDescription>
-          </FinModalHeader>
-
-          <FinModalContent className="space-y-5">
-            {adjustingAccount && (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-white p-2">
-                    <img
-                      src={adjustingAccount.image}
-                      alt=""
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-zinc-200">
-                      {adjustingAccount.name}
-                    </p>
-
-                    <p className="mt-0.5 text-xs text-zinc-500">
-                      Saldo registrado atualmente
-                    </p>
-                  </div>
-                </div>
-
-                <strong
-                  className={`mt-4 block text-xl font-semibold tracking-tight ${
-                    adjustingAccount.balance < 0
-                      ? "text-red-400"
-                      : "text-zinc-100"
-                  }`}
-                >
-                  {formatCurrency(
-                    adjustingAccount.balance,
-                  )}
-                </strong>
-              </div>
-            )}
-
-            <FinInput
-              label="Novo saldo atual"
-              type="text"
-              inputMode="decimal"
-              placeholder="0,00"
-              value={adjustedBalance}
-              onChange={(event) =>
-                setAdjustedBalance(
-                  event.target.value,
-                )
-              }
-            />
-
-            <p className="text-sm leading-6 text-zinc-500">
-              A diferença será registrada
-              automaticamente no histórico como
-              uma receita ou despesa de ajuste.
-            </p>
-          </FinModalContent>
-
-          <FinModalFooter>
-            <FinButton
-              variant="secondary"
-              onClick={closeAdjustmentModal}
-              disabled={saving}
-            >
-              Cancelar
-            </FinButton>
-
-            <FinButton
-              type="submit"
-              loading={saving}
-            >
-              Confirmar ajuste
             </FinButton>
           </FinModalFooter>
         </form>
