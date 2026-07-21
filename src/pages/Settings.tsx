@@ -4,12 +4,23 @@ import {
   Download,
   FileJson,
   HardDriveDownload,
+  Info,
   RotateCcw,
   ShieldCheck,
 } from "lucide-react";
 
 import AlertModal from "../components/AlertModal/AlertModal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
+
+import FinButton from "../finui/Button/FinButton";
+import {
+  FinCard,
+  FinCardContent,
+  FinCardDescription,
+  FinCardHeader,
+  FinCardTitle,
+} from "../finui/Card/FinCard";
+import FinPageHeader from "../finui/PageHeader/FinPageHeader";
 
 import {
   downloadBackup,
@@ -27,8 +38,7 @@ type AlertData = {
 };
 
 export default function Settings() {
-  const fileInputRef =
-    useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedBackup, setSelectedBackup] =
     useState<FinControlBackup>();
@@ -39,14 +49,11 @@ export default function Settings() {
   const [confirmRestoreOpen, setConfirmRestoreOpen] =
     useState(false);
 
-  const [alert, setAlert] =
-    useState<AlertData>();
+  const [alert, setAlert] = useState<AlertData>();
+  const [alertOpen, setAlertOpen] = useState(false);
 
-  const [exporting, setExporting] =
-    useState(false);
-
-  const [restoring, setRestoring] =
-    useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   function showAlert(
     title: string,
@@ -58,6 +65,16 @@ export default function Settings() {
       message,
       type,
     });
+
+    setAlertOpen(true);
+  }
+
+  function closeAlert() {
+    setAlertOpen(false);
+  }
+
+  function clearAlert() {
+    setAlert(undefined);
   }
 
   async function handleExportBackup() {
@@ -88,6 +105,8 @@ export default function Settings() {
   }
 
   function openFilePicker() {
+    if (restoring) return;
+
     fileInputRef.current?.click();
   }
 
@@ -100,9 +119,7 @@ export default function Settings() {
 
     if (!file) return;
 
-    if (
-      !file.name.toLowerCase().endsWith(".json")
-    ) {
+    if (!file.name.toLowerCase().endsWith(".json")) {
       showAlert(
         "Arquivo inválido",
         "Selecione um arquivo de backup no formato JSON.",
@@ -138,12 +155,15 @@ export default function Settings() {
     if (restoring) return;
 
     setConfirmRestoreOpen(false);
+  }
+
+  function clearSelectedBackup() {
     setSelectedBackup(undefined);
     setSelectedFileName("");
   }
 
   async function confirmRestore() {
-    if (!selectedBackup) return;
+    if (!selectedBackup || restoring) return;
 
     try {
       setRestoring(true);
@@ -151,8 +171,6 @@ export default function Settings() {
       await restoreBackup(selectedBackup);
 
       setConfirmRestoreOpen(false);
-      setSelectedBackup(undefined);
-      setSelectedFileName("");
 
       showAlert(
         "Backup restaurado",
@@ -178,117 +196,155 @@ export default function Settings() {
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold sm:text-4xl">
-          Configurações
-        </h1>
+    <div className="space-y-6">
+      <FinPageHeader
+        title="Configurações"
+        description="Gerencie a segurança e o armazenamento dos seus dados."
+      />
 
-        <p className="mt-2 text-slate-400">
-          Gerencie a segurança e o armazenamento dos seus dados.
-        </p>
-      </div>
-
-      <section className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-        <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-950 text-emerald-400">
-            <ShieldCheck size={26} />
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold">
-              Backup dos dados
-            </h2>
-
-            <p className="mt-2 max-w-2xl text-slate-400">
-              Exporte uma cópia de todas as contas,
-              movimentações, dívidas e objetivos do
-              FinControl.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
-            <div className="flex items-center gap-3">
-              <Download
-                size={24}
-                className="text-emerald-400"
-              />
-
-              <h3 className="font-semibold">
-                Exportar backup
-              </h3>
+      <FinCard>
+        <FinCardHeader>
+          <div className="flex items-start gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-300">
+              <ShieldCheck size={24} />
             </div>
 
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              Baixe um arquivo JSON contendo todos os
-              dados atualmente armazenados neste
-              dispositivo.
-            </p>
+            <div>
+              <FinCardTitle>
+                Backup dos dados
+              </FinCardTitle>
 
-            <button
-              type="button"
-              onClick={handleExportBackup}
-              disabled={exporting}
-              className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <HardDriveDownload size={19} />
-
-              {exporting
-                ? "Gerando backup..."
-                : "Exportar backup"}
-            </button>
+              <FinCardDescription>
+                Exporte ou restaure uma cópia das
+                contas, movimentações, dívidas e
+                objetivos armazenados neste
+                dispositivo.
+              </FinCardDescription>
+            </div>
           </div>
+        </FinCardHeader>
 
-          <div className="rounded-2xl border border-slate-700 bg-slate-900 p-5">
-            <div className="flex items-center gap-3">
-              <RotateCcw
-                size={24}
-                className="text-amber-400"
-              />
+        <FinCardContent>
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950/50 p-6 transition-colors hover:border-zinc-700">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-zinc-300">
+                  <Download size={20} />
+                </div>
 
-              <h3 className="font-semibold">
-                Restaurar backup
-              </h3>
+                <div>
+                  <h3 className="font-semibold text-zinc-100">
+                    Exportar backup
+                  </h3>
+
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Salve uma cópia dos seus dados
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm leading-6 text-zinc-400">
+                Baixe um arquivo JSON contendo todos os
+                dados atualmente armazenados no
+                FinControl.
+              </p>
+
+              <FinButton
+                type="button"
+                onClick={handleExportBackup}
+                disabled={exporting}
+                className="mt-6 w-full"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <HardDriveDownload
+                    size={18}
+                    className="shrink-0"
+                  />
+
+                  <span>
+                    {exporting
+                      ? "Gerando backup..."
+                      : "Exportar backup"}
+                  </span>
+                </span>
+              </FinButton>
             </div>
 
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              Importe um backup anterior. Os dados
-              atuais serão substituídos pelos dados do
-              arquivo selecionado.
-            </p>
+            <div className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-950/50 p-6 transition-colors hover:border-zinc-700">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-zinc-900 text-zinc-300">
+                  <RotateCcw size={20} />
+                </div>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".json,application/json"
-              onChange={handleFileSelected}
-              className="hidden"
+                <div>
+                  <h3 className="font-semibold text-zinc-100">
+                    Restaurar backup
+                  </h3>
+
+                  <p className="mt-1 text-xs text-zinc-500">
+                    Recupere uma cópia anterior
+                  </p>
+                </div>
+              </div>
+
+              <p className="mt-5 text-sm leading-6 text-zinc-400">
+                Importe um backup anterior. Os dados
+                atuais serão substituídos pelos dados
+                do arquivo selecionado.
+              </p>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json,application/json"
+                onChange={handleFileSelected}
+                className="hidden"
+              />
+
+              <FinButton
+                type="button"
+                onClick={openFilePicker}
+                disabled={restoring}
+                variant="secondary"
+                className="mt-6 w-full"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <FileJson
+                    size={18}
+                    className="shrink-0"
+                  />
+
+                  <span>
+                    {restoring
+                      ? "Restaurando..."
+                      : "Selecionar backup"}
+                  </span>
+                </span>
+              </FinButton>
+            </div>
+          </div>
+
+          <div className="mt-5 flex items-start gap-3 rounded-xl border border-amber-900/40 bg-amber-950/10 p-4">
+            <Info
+              size={19}
+              className="mt-0.5 shrink-0 text-amber-500"
             />
 
-            <button
-              type="button"
-              onClick={openFilePicker}
-              disabled={restoring}
-              className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-700 px-5 py-3 font-medium text-white transition hover:bg-slate-600 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <FileJson size={19} />
+            <div>
+              <p className="text-sm font-medium text-amber-200">
+                Mantenha uma cópia recente
+              </p>
 
-              Selecionar backup
-            </button>
+              <p className="mt-1 text-sm leading-6 text-zinc-400">
+                O FinControl salva os dados localmente
+                no navegador. Guarde o arquivo de
+                backup no Google Drive, OneDrive ou em
+                outro local seguro.
+              </p>
+            </div>
           </div>
-        </div>
-
-        <div className="mt-6 rounded-xl border border-amber-900/60 bg-amber-950/30 p-4">
-          <p className="text-sm leading-6 text-amber-200">
-            O FinControl salva os dados localmente no
-            navegador. Mantenha uma cópia recente do
-            backup no Google Drive, OneDrive ou outro
-            local seguro.
-          </p>
-        </div>
-      </section>
+        </FinCardContent>
+      </FinCard>
 
       <ConfirmModal
         open={confirmRestoreOpen}
@@ -303,14 +359,16 @@ export default function Settings() {
         danger
         onConfirm={confirmRestore}
         onCancel={cancelRestore}
+        onClosed={clearSelectedBackup}
       />
 
       <AlertModal
-        open={Boolean(alert)}
+        open={alertOpen}
         title={alert?.title ?? ""}
         message={alert?.message ?? ""}
         type={alert?.type}
-        onClose={() => setAlert(undefined)}
+        onClose={closeAlert}
+        onClosed={clearAlert}
       />
     </div>
   );

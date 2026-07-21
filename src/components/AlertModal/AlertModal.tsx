@@ -23,6 +23,7 @@ type AlertModalProps = {
   type?: AlertType;
   buttonText?: string;
   onClose: () => void;
+  onClosed?: () => void;
 };
 
 type AlertStyle = {
@@ -65,6 +66,7 @@ export default function AlertModal({
   type = "info",
   buttonText = "Entendi",
   onClose,
+  onClosed,
 }: AlertModalProps) {
   const style = alertStyles[type];
 
@@ -72,6 +74,7 @@ export default function AlertModal({
       <FinModal
         open={open}
         onClose={onClose}
+        onClosed={onClosed}
         size="sm"
         showCloseButton={false}
         zIndex={200}
