@@ -21,6 +21,7 @@ type FinModalSize = "sm" | "md" | "lg";
 type FinModalProps = {
   open: boolean;
   onClose: () => void;
+  onClosed?: () => void;
   children: ReactNode;
   size?: FinModalSize;
   closeOnOverlayClick?: boolean;
@@ -48,6 +49,7 @@ const sizeClasses: Record<FinModalSize, string> = {
 export default function FinModal({
   open,
   onClose,
+  onClosed,
   children,
   size = "md",
   closeOnOverlayClick = true,
@@ -126,6 +128,8 @@ export default function FinModal({
         setClosing(false);
 
         exitTimerRef.current = null;
+
+        onClosed?.();
 
         openerRef.current?.focus({
           preventScroll: true,

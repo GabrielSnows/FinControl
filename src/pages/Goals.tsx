@@ -13,11 +13,28 @@ import {
   Trash2,
 } from "lucide-react";
 
-import Modal from "../components/Modal/Modal";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
 import AlertModal from "../components/AlertModal/AlertModal";
-import Button from "../components/ui/Button";
-import Input from "../components/ui/Input";
+
+import FinButton from "../finui/Button/FinButton";
+import FinInput from "../finui/Input/FinInput";
+import FinPageHeader from "../finui/PageHeader/FinPageHeader";
+
+import {
+  FinCard,
+  FinCardContent,
+  FinCardDescription,
+  FinCardHeader,
+  FinCardTitle,
+} from "../finui/Card/FinCard";
+
+import FinModal, {
+  FinModalContent,
+  FinModalDescription,
+  FinModalFooter,
+  FinModalHeader,
+  FinModalTitle,
+} from "../finui/Modal/FinModal";
 
 import { db } from "../database/database";
 
@@ -57,30 +74,25 @@ type AlertData = {
 
 export default function Goals() {
   const goals = useLiveQuery(
-    () => db.goals.orderBy("createdAt").reverse().toArray(),
+    () =>
+      db.goals
+        .orderBy("createdAt")
+        .reverse()
+        .toArray(),
     [],
   );
 
   const [alert, setAlert] = useState<AlertData>();
+  const [alertOpen, setAlertOpen] = useState(false);
   const [goalModalOpen, setGoalModalOpen] = useState(false);
-  const [progressModalOpen, setProgressModalOpen] =
-    useState(false);
-
-  const [editingGoalId, setEditingGoalId] =
-    useState<number | null>(null);
-
-  const [progressGoal, setProgressGoal] =
-    useState<Goal>();
-
-  const [goalToDelete, setGoalToDelete] =
-  useState<Goal>();
-
+  const [progressModalOpen, setProgressModalOpen] = useState(false);
+  const [editingGoalId, setEditingGoalId] = useState<number | null>(null);
+  const [progressGoal, setProgressGoal] = useState<Goal>();
+  const [goalToDelete, setGoalToDelete] = useState<Goal>();
   const [title, setTitle] = useState("");
   const [targetAmount, setTargetAmount] = useState("");
   const [currentAmount, setCurrentAmount] = useState("");
-  const [newProgressAmount, setNewProgressAmount] =
-    useState("");
-
+  const [newProgressAmount, setNewProgressAmount] = useState("");
   const [saving, setSaving] = useState(false);
 
   function resetGoalForm() {
@@ -95,11 +107,12 @@ export default function Goals() {
     message: string,
     type: AlertType = "warning",
   ) {
-    setAlert({
-      title,
-      message,
-      type,
-    });
+    setAlert({ title, message, type });
+    setAlertOpen(true);
+  }
+
+  function closeAlert() {
+    setAlertOpen(false);
   }
 
   function openNewGoalModal() {
@@ -117,9 +130,7 @@ export default function Goals() {
 
   function closeGoalModal() {
     if (saving) return;
-
     setGoalModalOpen(false);
-    resetGoalForm();
   }
 
   function openProgressModal(goal: Goal) {
@@ -132,46 +143,31 @@ export default function Goals() {
     if (saving) return;
 
     setProgressModalOpen(false);
-    setProgressGoal(undefined);
-    setNewProgressAmount("");
   }
 
-  async function saveGoal(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function saveGoal(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const normalizedTitle = title.trim();
 
     if (!normalizedTitle) {
-      showAlert(
-        "Nome não informado",
-        "Informe o nome do objetivo.",
-      );
+      showAlert("Nome não informado", "Informe o nome do objetivo.");
       return;
     }
 
     const numericTarget = parseCurrencyValue(targetAmount);
-    const numericCurrent = parseCurrencyValue(
-      currentAmount || "0",
-    );
+    const numericCurrent = parseCurrencyValue(currentAmount || "0");
 
     if (
       targetAmount.trim() === "" ||
       Number.isNaN(numericTarget) ||
       numericTarget <= 0
     ) {
-      showAlert(
-        "Valor alvo inválido",
-        "Digite um valor alvo maior que zero.",
-      );
+      showAlert("Valor alvo inválido", "Digite um valor alvo maior que zero.");
       return;
     }
 
-    if (
-      Number.isNaN(numericCurrent) ||
-      numericCurrent < 0
-    ) {
+    if (Number.isNaN(numericCurrent) || numericCurrent < 0) {
       showAlert(
         "Valor guardado inválido",
         "O valor guardado não pode ser negativo.",
@@ -181,9 +177,7 @@ export default function Goals() {
 
     try {
       setSaving(true);
-
-      const completed =
-        numericCurrent >= numericTarget;
+      const completed = numericCurrent >= numericTarget;
 
       if (editingGoalId !== null) {
         await db.goals.update(editingGoalId, {
@@ -209,7 +203,6 @@ export default function Goals() {
       resetGoalForm();
     } catch (error) {
       console.error("Erro ao salvar objetivo:", error);
-
       showAlert(
         "Não foi possível salvar",
         "Ocorreu um erro ao salvar o objetivo.",
@@ -220,26 +213,18 @@ export default function Goals() {
     }
   }
 
-  async function saveProgress(
-    event: FormEvent<HTMLFormElement>,
-  ) {
+  async function saveProgress(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     if (!progressGoal) return;
 
-    const numericAmount = parseCurrencyValue(
-      newProgressAmount,
-    );
+    const numericAmount = parseCurrencyValue(newProgressAmount);
 
     if (
       newProgressAmount.trim() === "" ||
       Number.isNaN(numericAmount) ||
       numericAmount < 0
     ) {
-      showAlert(
-        "Valor inválido",
-        "Digite um valor guardado válido.",
-      );
+      showAlert("Valor inválido", "Digite um valor guardado válido.");
       return;
     }
 
@@ -248,19 +233,14 @@ export default function Goals() {
 
       await db.goals.update(progressGoal.id, {
         currentAmount: numericAmount,
-        completed:
-          numericAmount >= progressGoal.targetAmount,
+        completed: numericAmount >= progressGoal.targetAmount,
       });
 
       setProgressModalOpen(false);
       setProgressGoal(undefined);
       setNewProgressAmount("");
     } catch (error) {
-      console.error(
-        "Erro ao atualizar progresso:",
-        error,
-      );
-
+      console.error("Erro ao atualizar progresso:", error);
       showAlert(
         "Não foi possível atualizar",
         "Ocorreu um erro ao atualizar o progresso.",
@@ -277,11 +257,7 @@ export default function Goals() {
         completed: !goal.completed,
       });
     } catch (error) {
-      console.error(
-        "Erro ao alterar objetivo:",
-        error,
-      );
-
+      console.error("Erro ao alterar objetivo:", error);
       showAlert(
         "Não foi possível alterar",
         "Ocorreu um erro ao alterar o objetivo.",
@@ -294,148 +270,134 @@ export default function Goals() {
     if (!goalToDelete) return;
 
     try {
+      setSaving(true);
       await db.goals.delete(goalToDelete.id);
       setGoalToDelete(undefined);
     } catch (error) {
-      console.error(
-        "Erro ao excluir objetivo:",
-        error,
-      );
-
+      console.error("Erro ao excluir objetivo:", error);
+      setGoalToDelete(undefined);
       showAlert(
         "Não foi possível excluir",
         "Ocorreu um erro ao excluir o objetivo.",
         "error",
       );
+    } finally {
+      setSaving(false);
     }
   }
 
   if (goals === undefined) {
     return (
-      <div className="flex min-h-64 items-center justify-center text-slate-400">
-        Carregando objetivos...
+      <div className="flex min-h-64 items-center justify-center">
+        <div className="text-center">
+          <div className="mx-auto h-7 w-7 animate-spin rounded-full border-2 border-zinc-800 border-t-zinc-300" />
+          <p className="mt-3 text-sm text-zinc-500">Carregando objetivos...</p>
+        </div>
       </div>
     );
   }
 
-  const activeGoals = goals.filter(
-    (goal) => !goal.completed,
-  );
-
-  const completedGoals = goals.filter(
-    (goal) => goal.completed,
-  );
-
+  const activeGoals = goals.filter((goal) => !goal.completed);
+  const completedGoals = goals.filter((goal) => goal.completed);
   const totalTarget = activeGoals.reduce(
     (total, goal) => total + goal.targetAmount,
     0,
   );
-
   const totalSaved = activeGoals.reduce(
     (total, goal) => total + goal.currentAmount,
     0,
   );
-
-  const totalRemaining = Math.max(
-    totalTarget - totalSaved,
-    0,
-  );
+  const totalRemaining = Math.max(totalTarget - totalSaved, 0);
 
   return (
     <div>
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold sm:text-4xl">
-            Objetivos
-          </h1>
+      <FinPageHeader
+        title="Objetivos"
+        description="Acompanhe seus planos e conquistas."
+        action={
+          <FinButton leftIcon={<Plus />} onClick={openNewGoalModal}>
+            Novo objetivo
+          </FinButton>
+        }
+      />
 
-          <p className="mt-2 text-slate-400">
-            Acompanhe seus planos e conquistas.
-          </p>
-        </div>
+      <div className="mb-8 grid gap-4 md:grid-cols-3">
+        <SummaryCard
+          label="Objetivos ativos"
+          value={formatCurrency(totalTarget)}
+          description="Valor total planejado"
+        />
 
-        <button
-          type="button"
-          onClick={openNewGoalModal}
-          className="flex cursor-pointer items-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 font-medium text-white transition hover:bg-emerald-700"
-        >
-          <Plus size={19} />
-          Novo Objetivo
-        </button>
-      </div>
+        <SummaryCard
+          label="Total guardado"
+          value={formatCurrency(totalSaved)}
+          description="Nos objetivos em andamento"
+          valueClassName="text-emerald-400"
+        />
 
-      <div className="mb-8 grid gap-5 md:grid-cols-3">
-        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5">
-          <p className="text-sm text-slate-400">
-            Valor dos objetivos ativos
-          </p>
-
-          <strong className="mt-2 block text-2xl">
-            {formatCurrency(totalTarget)}
-          </strong>
-        </div>
-
-        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5">
-          <p className="text-sm text-slate-400">
-            Total já guardado
-          </p>
-
-          <strong className="mt-2 block text-2xl text-emerald-400">
-            {formatCurrency(totalSaved)}
-          </strong>
-        </div>
-
-        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-5">
-          <p className="text-sm text-slate-400">
-            Valor restante
-          </p>
-
-          <strong className="mt-2 block text-2xl text-amber-400">
-            {formatCurrency(totalRemaining)}
-          </strong>
-        </div>
+        <SummaryCard
+          label="Valor restante"
+          value={formatCurrency(totalRemaining)}
+          description="Para concluir todos os ativos"
+          valueClassName="text-amber-400"
+        />
       </div>
 
       {goals.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/60 px-6 py-16 text-center">
-          <Target
-            size={50}
-            className="mx-auto text-slate-500"
-          />
+        <FinCard>
+          <FinCardContent className="px-6 py-16 text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900/70">
+              <Target
+                size={27}
+                strokeWidth={1.7}
+                className="text-zinc-400"
+              />
+            </div>
 
-          <h2 className="mt-5 text-xl font-semibold">
-            Nenhum objetivo cadastrado
-          </h2>
+            <h2 className="mt-5 text-lg font-semibold tracking-tight text-zinc-100">
+              Nenhum objetivo cadastrado
+            </h2>
 
-          <p className="mt-2 text-slate-400">
-            Cadastre um objetivo para acompanhar seu progresso.
-          </p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-zinc-500">
+              Cadastre um objetivo para acompanhar seu progresso e suas conquistas.
+            </p>
 
-          <button
-            type="button"
-            onClick={openNewGoalModal}
-            className="mt-6 cursor-pointer rounded-xl bg-emerald-600 px-5 py-3 font-medium transition hover:bg-emerald-700"
-          >
-            Criar primeiro objetivo
-          </button>
-        </div>
+            <FinButton
+              className="mt-7"
+              leftIcon={<Plus />}
+              onClick={openNewGoalModal}
+            >
+              Criar primeiro objetivo
+            </FinButton>
+          </FinCardContent>
+        </FinCard>
       ) : (
-        <div className="space-y-8">
+        <div className="space-y-10">
           <section>
             <div className="mb-4">
-              <h2 className="text-xl font-semibold">
+              <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
                 Em andamento
               </h2>
-
-              <p className="mt-1 text-sm text-slate-400">
-                Objetivos que você ainda está buscando.
+              <p className="mt-1 text-sm text-zinc-500">
+                {activeGoals.length === 1
+                  ? "1 objetivo ativo"
+                  : `${activeGoals.length} objetivos ativos`}
               </p>
             </div>
 
             {activeGoals.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-800/60 p-8 text-center text-slate-400">
-                Todos os seus objetivos foram concluídos.
-              </div>
+              <FinCard>
+                <FinCardContent className="px-6 py-10 text-center">
+                  <CheckCircle2
+                    size={26}
+                    strokeWidth={1.7}
+                    className="mx-auto text-zinc-500"
+                  />
+                  <p className="mt-3 text-sm text-zinc-500">
+                    Todos os seus objetivos foram concluídos.
+                  </p>
+                </FinCardContent>
+              </FinCard>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {activeGoals.map((goal) => (
@@ -455,12 +417,13 @@ export default function Goals() {
           {completedGoals.length > 0 && (
             <section>
               <div className="mb-4">
-                <h2 className="text-xl font-semibold">
+                <h2 className="text-lg font-semibold tracking-tight text-zinc-100">
                   Concluídos
                 </h2>
-
-                <p className="mt-1 text-sm text-slate-400">
-                  Objetivos que você já conseguiu alcançar.
+                <p className="mt-1 text-sm text-zinc-500">
+                  {completedGoals.length === 1
+                    ? "1 objetivo conquistado"
+                    : `${completedGoals.length} objetivos conquistados`}
                 </p>
               </div>
 
@@ -481,145 +444,194 @@ export default function Goals() {
         </div>
       )}
 
-      <Modal
+      <FinModal
         open={goalModalOpen}
-        title={
-          editingGoalId === null
-            ? "Novo Objetivo"
-            : "Editar Objetivo"
-        }
         onClose={closeGoalModal}
+        onClosed={() => {
+          setProgressGoal(undefined);
+          setNewProgressAmount("");
+        }}
+        size="md"
+        closeOnOverlayClick={!saving}
+        closeOnEscape={!saving}
       >
-        <form
-          onSubmit={saveGoal}
-          className="space-y-5"
-        >
-          <Input
-            label="Nome do objetivo"
-            type="text"
-            placeholder="Ex.: Som do Gol"
-            value={title}
-            onChange={setTitle}
-          />
+        <form onSubmit={saveGoal}>
+          <FinModalHeader>
+            <FinModalTitle>
+              {editingGoalId === null ? "Novo objetivo" : "Editar objetivo"}
+            </FinModalTitle>
+            <FinModalDescription>
+              {editingGoalId === null
+                ? "Defina o objetivo, o valor necessário e quanto você já guardou."
+                : "Altere as informações cadastradas neste objetivo."}
+            </FinModalDescription>
+          </FinModalHeader>
 
-          <Input
-            label="Valor alvo"
-            type="text"
-            placeholder="0,00"
-            value={targetAmount}
-            onChange={setTargetAmount}
-          />
+          <FinModalContent className="space-y-5">
+            <FinInput
+              label="Nome do objetivo"
+              type="text"
+              placeholder="Ex.: Som do Gol"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+            />
 
-          <Input
-            label="Valor já guardado"
-            type="text"
-            placeholder="0,00"
-            value={currentAmount}
-            onChange={setCurrentAmount}
-          />
+            <FinInput
+              label="Valor alvo"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={targetAmount}
+              onChange={(event) => setTargetAmount(event.target.value)}
+              helperText="Informe o valor total necessário."
+            />
 
-          <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
-            <Button
+            <FinInput
+              label="Valor já guardado"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={currentAmount}
+              onChange={(event) => setCurrentAmount(event.target.value)}
+            />
+          </FinModalContent>
+
+          <FinModalFooter>
+            <FinButton
               variant="secondary"
               onClick={closeGoalModal}
               disabled={saving}
             >
               Cancelar
-            </Button>
+            </FinButton>
 
-            <Button
-              type="submit"
-              disabled={saving}
-            >
-              {saving
-                ? "Salvando..."
-                : editingGoalId === null
-                  ? "Salvar objetivo"
-                  : "Salvar alterações"}
-            </Button>
-          </div>
+            <FinButton type="submit" loading={saving}>
+              {editingGoalId === null ? "Salvar objetivo" : "Salvar alterações"}
+            </FinButton>
+          </FinModalFooter>
         </form>
-      </Modal>
+      </FinModal>
 
-      <Modal
+      <FinModal
         open={progressModalOpen}
-        title="Atualizar progresso"
         onClose={closeProgressModal}
+        size="sm"
+        closeOnOverlayClick={!saving}
+        closeOnEscape={!saving}
       >
-        <form
-          onSubmit={saveProgress}
-          className="space-y-5"
-        >
-          {progressGoal && (
-            <div className="rounded-xl bg-slate-900 p-4">
-              <p className="text-sm text-slate-400">
-                Objetivo
-              </p>
+        <form onSubmit={saveProgress}>
+          <FinModalHeader>
+            <FinModalTitle>Atualizar progresso</FinModalTitle>
+            <FinModalDescription>
+              Informe o total que está guardado atualmente neste objetivo.
+            </FinModalDescription>
+          </FinModalHeader>
 
-              <strong className="mt-1 block">
-                {progressGoal.title}
-              </strong>
+          <FinModalContent className="space-y-5">
+            {progressGoal && (
+              <div className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+                <p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-600">
+                  Objetivo
+                </p>
+                <strong className="mt-2 block truncate text-base font-medium text-zinc-200">
+                  {progressGoal.title}
+                </strong>
 
-              <p className="mt-4 text-sm text-slate-400">
-                Valor alvo
-              </p>
+                <div className="mt-4 flex items-end justify-between gap-4">
+                  <div>
+                    <p className="text-xs text-zinc-500">Guardado</p>
+                    <strong className="mt-1 block text-sm font-medium text-zinc-200">
+                      {formatCurrency(progressGoal.currentAmount)}
+                    </strong>
+                  </div>
 
-              <strong className="mt-1 block text-xl">
-                {formatCurrency(
-                  progressGoal.targetAmount,
-                )}
-              </strong>
-            </div>
-          )}
+                  <div className="text-right">
+                    <p className="text-xs text-zinc-500">Meta</p>
+                    <strong className="mt-1 block text-sm font-medium text-zinc-200">
+                      {formatCurrency(progressGoal.targetAmount)}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+            )}
 
-          <Input
-            label="Total guardado atualmente"
-            type="text"
-            placeholder="0,00"
-            value={newProgressAmount}
-            onChange={setNewProgressAmount}
-          />
+            <FinInput
+              label="Total guardado atualmente"
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={newProgressAmount}
+              onChange={(event) => setNewProgressAmount(event.target.value)}
+              helperText="Digite o valor total, não apenas o último depósito."
+            />
+          </FinModalContent>
 
-          <div className="flex justify-end gap-3 border-t border-slate-700 pt-5">
-            <Button
+          <FinModalFooter>
+            <FinButton
               variant="secondary"
               onClick={closeProgressModal}
               disabled={saving}
             >
               Cancelar
-            </Button>
-
-            <Button
-              type="submit"
-              disabled={saving}
-            >
-              {saving
-                ? "Atualizando..."
-                : "Salvar progresso"}
-            </Button>
-          </div>
+            </FinButton>
+            <FinButton type="submit" loading={saving}>
+              Salvar progresso
+            </FinButton>
+          </FinModalFooter>
         </form>
-      </Modal>
+      </FinModal>
 
       <ConfirmModal
         open={Boolean(goalToDelete)}
         title="Excluir objetivo"
         message={`Tem certeza de que deseja excluir o objetivo "${
           goalToDelete?.title ?? ""
-        }"?`}
+        }"? Esta ação não pode ser desfeita.`}
         confirmText="Excluir objetivo"
         onConfirm={confirmDeleteGoal}
-        onCancel={() => setGoalToDelete(undefined)}
+        onCancel={() => {
+          if (!saving) setGoalToDelete(undefined);
+        }}
       />
 
       <AlertModal
-        open={Boolean(alert)}
+        open={alertOpen}
         title={alert?.title ?? ""}
         message={alert?.message ?? ""}
         type={alert?.type}
-        onClose={() => setAlert(undefined)}
+        onClose={closeAlert}
       />
     </div>
+  );
+}
+
+type SummaryCardProps = {
+  label: string;
+  value: string;
+  description: string;
+  valueClassName?: string;
+};
+
+function SummaryCard({
+  label,
+  value,
+  description,
+  valueClassName = "text-zinc-100",
+}: SummaryCardProps) {
+  return (
+    <FinCard>
+      <FinCardContent className="p-5">
+        <p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-600">
+          {label}
+        </p>
+        <strong
+          className={`mt-2 block text-2xl font-semibold tracking-tight ${valueClassName}`}
+        >
+          {value}
+        </strong>
+        <p className="mt-2 text-sm text-zinc-500">{description}</p>
+      </FinCardContent>
+    </FinCard>
   );
 }
 
@@ -639,42 +651,27 @@ function GoalCard({
   onDelete,
 }: GoalCardProps) {
   const progress = calculateProgress(goal);
-
-  const remaining = Math.max(
-    goal.targetAmount - goal.currentAmount,
-    0,
-  );
+  const remaining = Math.max(goal.targetAmount - goal.currentAmount, 0);
 
   return (
-    <article
-      className={`rounded-2xl border p-5 ${
-        goal.completed
-          ? "border-emerald-900 bg-emerald-950/30"
-          : "border-slate-700 bg-slate-800"
-      }`}
-    >
-      <div className="flex items-start justify-between gap-4">
+    <FinCard variant="interactive" className="group flex min-h-105 flex-col">
+      <FinCardHeader className="flex-row items-start justify-between gap-4">
         <div className="min-w-0">
-          <h3 className="truncate text-lg font-semibold">
-            {goal.title}
-          </h3>
-
-          <p className="mt-1 text-sm text-slate-400">
-            {goal.completed
-              ? "Objetivo concluído"
-              : `${progress.toFixed(0)}% concluído`}
-          </p>
+          <FinCardTitle className="truncate text-base">{goal.title}</FinCardTitle>
+          <FinCardDescription className="mt-1">
+            {goal.completed ? "Objetivo concluído" : `${progress.toFixed(0)}% concluído`}
+          </FinCardDescription>
         </div>
 
-        <div className="flex shrink-0 gap-1">
+        <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
           <button
             type="button"
             onClick={() => onEdit(goal)}
             title="Editar objetivo"
             aria-label={`Editar ${goal.title}`}
-            className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-slate-700 hover:text-white"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
           >
-            <Pencil size={18} />
+            <Pencil size={16} strokeWidth={1.8} />
           </button>
 
           <button
@@ -682,76 +679,83 @@ function GoalCard({
             onClick={() => onDelete(goal)}
             title="Excluir objetivo"
             aria-label={`Excluir ${goal.title}`}
-            className="cursor-pointer rounded-lg p-2 text-slate-400 transition hover:bg-red-950 hover:text-red-400"
+            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
           >
-            <Trash2 size={18} />
+            <Trash2 size={16} strokeWidth={1.8} />
           </button>
         </div>
-      </div>
+      </FinCardHeader>
 
-      <div className="mt-6">
-        <div className="h-3 overflow-hidden rounded-full bg-slate-700">
-          <div
-            className="h-full rounded-full bg-emerald-500 transition-all"
-            style={{
-              width: `${progress}%`,
-            }}
-          />
+      <FinCardContent className="flex flex-1 flex-col">
+        <div>
+          <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
+            <div
+              className={`h-full rounded-full transition-all duration-300 ${
+                goal.completed ? "bg-emerald-500" : "bg-zinc-300"
+              }`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          <div className="mt-3 flex items-start justify-between gap-4 text-sm">
+            <div>
+              <p className="text-xs text-zinc-600">Guardado</p>
+              <strong className="mt-1 block font-medium text-zinc-200">
+                {formatCurrency(goal.currentAmount)}
+              </strong>
+            </div>
+
+            <div className="text-right">
+              <p className="text-xs text-zinc-600">Meta</p>
+              <strong className="mt-1 block font-medium text-zinc-400">
+                {formatCurrency(goal.targetAmount)}
+              </strong>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-3 flex justify-between gap-3 text-sm">
-          <span className="text-emerald-400">
-            {formatCurrency(goal.currentAmount)}
-          </span>
-
-          <span className="text-slate-400">
-            {formatCurrency(goal.targetAmount)}
-          </span>
+        <div className="mt-5 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
+          {goal.completed ? (
+            <>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-emerald-500/70">
+                Conquista
+              </p>
+              <strong className="mt-2 block text-base font-medium text-emerald-400">
+                Objetivo alcançado
+              </strong>
+            </>
+          ) : (
+            <>
+              <p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-600">
+                Falta guardar
+              </p>
+              <strong className="mt-2 block text-lg font-semibold tracking-tight text-zinc-100">
+                {formatCurrency(remaining)}
+              </strong>
+            </>
+          )}
         </div>
-      </div>
 
-      {!goal.completed && (
-        <div className="mt-5 rounded-xl bg-slate-900 p-3">
-          <p className="text-xs text-slate-500">
-            Falta guardar
-          </p>
+        <div className="mt-auto pt-5">
+          <FinButton
+            className="w-full"
+            variant="secondary"
+            leftIcon={<CircleDollarSign />}
+            onClick={() => onUpdateProgress(goal)}
+          >
+            Atualizar progresso
+          </FinButton>
 
-          <strong className="mt-1 block text-amber-400">
-            {formatCurrency(remaining)}
-          </strong>
+          <FinButton
+            className="mt-3 w-full"
+            variant={goal.completed ? "secondary" : "primary"}
+            leftIcon={goal.completed ? <RotateCcw /> : <CheckCircle2 />}
+            onClick={() => onToggleStatus(goal)}
+          >
+            {goal.completed ? "Reabrir objetivo" : "Marcar como concluído"}
+          </FinButton>
         </div>
-      )}
-
-      <button
-        type="button"
-        onClick={() => onUpdateProgress(goal)}
-        className="mt-5 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-slate-700 px-4 py-3 font-medium transition hover:bg-slate-600"
-      >
-        <CircleDollarSign size={18} />
-        Atualizar progresso
-      </button>
-
-      <button
-        type="button"
-        onClick={() => onToggleStatus(goal)}
-        className={`mt-3 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 font-medium transition ${
-          goal.completed
-            ? "bg-slate-700 hover:bg-slate-600"
-            : "bg-emerald-600 hover:bg-emerald-700"
-        }`}
-      >
-        {goal.completed ? (
-          <>
-            <RotateCcw size={18} />
-            Reabrir objetivo
-          </>
-        ) : (
-          <>
-            <CheckCircle2 size={18} />
-            Marcar como concluído
-          </>
-        )}
-      </button>
-    </article>
+      </FinCardContent>
+    </FinCard>
   );
 }
