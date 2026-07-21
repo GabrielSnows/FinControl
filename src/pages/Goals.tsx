@@ -206,7 +206,6 @@ export default function Goals() {
       }
 
       setGoalModalOpen(false);
-      resetGoalForm();
     } catch (error) {
       console.error("Erro ao salvar objetivo:", error);
       showAlert(
@@ -243,8 +242,6 @@ export default function Goals() {
       });
 
       setProgressModalOpen(false);
-      setProgressGoal(undefined);
-      setNewProgressAmount("");
     } catch (error) {
       console.error("Erro ao atualizar progresso:", error);
       showAlert(
@@ -334,7 +331,7 @@ export default function Goals() {
         }
       />
 
-      <div className="mb-8 grid gap-4 md:grid-cols-3">
+      <div className="mb-8 grid gap-3 sm:gap-4 md:grid-cols-3">
         <SummaryCard
           label="Objetivos ativos"
           value={formatCurrency(totalTarget)}
@@ -412,7 +409,7 @@ export default function Goals() {
                 </FinCardContent>
               </FinCard>
             ) : (
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {activeGoals.map((goal) => (
                   <GoalCard
                     key={goal.id}
@@ -440,7 +437,7 @@ export default function Goals() {
                 </p>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {completedGoals.map((goal) => (
                   <GoalCard
                     key={goal.id}
@@ -460,10 +457,7 @@ export default function Goals() {
       <FinModal
         open={goalModalOpen}
         onClose={closeGoalModal}
-        onClosed={() => {
-          setProgressGoal(undefined);
-          setNewProgressAmount("");
-        }}
+        onClosed={resetGoalForm}
         size="md"
         closeOnOverlayClick={!saving}
         closeOnEscape={!saving}
@@ -528,6 +522,10 @@ export default function Goals() {
       <FinModal
         open={progressModalOpen}
         onClose={closeProgressModal}
+        onClosed={() => {
+          setProgressGoal(undefined);
+          setNewProgressAmount("");
+        }}
         size="sm"
         closeOnOverlayClick={!saving}
         closeOnEscape={!saving}
@@ -638,12 +636,12 @@ function SummaryCard({
 }: SummaryCardProps) {
   return (
     <FinCard>
-      <FinCardContent className="p-5">
+      <FinCardContent className="p-4 sm:p-5">
         <p className="text-xs font-medium uppercase tracking-[0.12em] text-zinc-600">
           {label}
         </p>
         <strong
-          className={`mt-2 block text-2xl font-semibold tracking-tight ${valueClassName}`}
+          className={`mt-2 block text-xl font-semibold tracking-tight sm:text-2xl ${valueClassName}`}
         >
           {value}
         </strong>
@@ -669,13 +667,13 @@ function GoalCard({
   onDelete,
 }: GoalCardProps) {
   const progress = goal.completed
-  ? 100
-  : calculateProgress(goal);
+    ? 100
+    : calculateProgress(goal);
   const remaining = Math.max(goal.targetAmount - goal.currentAmount, 0);
 
   return (
-    <FinCard variant="interactive" className="group flex min-h-105 flex-col">
-      <FinCardHeader className="flex-row items-start justify-between gap-4">
+    <FinCard variant="interactive" className="group flex min-h-96 flex-col sm:min-h-104">
+      <FinCardHeader className="flex-row items-start justify-between gap-3 sm:gap-4">
         <div className="min-w-0">
           <FinCardTitle className="truncate text-base">{goal.title}</FinCardTitle>
           <FinCardDescription className="mt-1">
@@ -689,7 +687,7 @@ function GoalCard({
             onClick={() => onEdit(goal)}
             title="Editar objetivo"
             aria-label={`Editar ${goal.title}`}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600 sm:h-9 sm:w-9"
           >
             <Pencil size={16} strokeWidth={1.8} />
           </button>
@@ -699,7 +697,7 @@ function GoalCard({
             onClick={() => onDelete(goal)}
             title="Excluir objetivo"
             aria-label={`Excluir ${goal.title}`}
-            className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900 sm:h-9 sm:w-9"
           >
             <Trash2 size={16} strokeWidth={1.8} />
           </button>
