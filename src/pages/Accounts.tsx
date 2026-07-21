@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
+
 import { useLiveQuery } from "dexie-react-hooks";
 import {
   Pencil,
@@ -8,14 +9,12 @@ import {
   WalletCards,
 } from "lucide-react";
 
+import AlertModal from "../components/AlertModal/AlertModal";
 import BankSelect from "../components/BankSelect/BankSelect";
 import ConfirmModal from "../components/ConfirmModal/ConfirmModal";
-import AlertModal from "../components/AlertModal/AlertModal";
-
+import { db } from "../database/database";
+import type { Bank } from "../data/banks";
 import FinButton from "../finui/Button/FinButton";
-import FinInput from "../finui/Input/FinInput";
-import FinPageHeader from "../finui/PageHeader/FinPageHeader";
-
 import {
   FinCard,
   FinCardContent,
@@ -23,7 +22,7 @@ import {
   FinCardHeader,
   FinCardTitle,
 } from "../finui/Card/FinCard";
-
+import FinInput from "../finui/Input/FinInput";
 import FinModal, {
   FinModalContent,
   FinModalDescription,
@@ -31,13 +30,10 @@ import FinModal, {
   FinModalHeader,
   FinModalTitle,
 } from "../finui/Modal/FinModal";
-
-import { db } from "../database/database";
-
+import FinPageHeader from "../finui/PageHeader/FinPageHeader";
+import type { AlertType } from "../components/AlertModal/AlertModal";
 import type { Account } from "../types/Account";
 import type { Transaction } from "../types/Transaction";
-import type { Bank } from "../data/banks";
-import type { AlertType } from "../components/AlertModal/AlertModal";
 
 type AlertData = {
   title: string;
@@ -92,6 +88,9 @@ export default function Accounts() {
   const [accountToDelete, setAccountToDelete] =
     useState<Account>();
 
+  const [confirmModalOpen, setConfirmModalOpen] =
+    useState(false);
+
   const [alert, setAlert] = useState<AlertData>();
   const [alertOpen, setAlertOpen] = useState(false);
 
@@ -115,10 +114,14 @@ export default function Accounts() {
     setAlertOpen(false);
   }
 
-  function openNewAccountModal() {
-    setEditingAccountId(null);
+  function resetAccountForm() {
     setSelectedBank(undefined);
     setBalance("");
+    setEditingAccountId(null);
+  }
+
+  function openNewAccountModal() {
+    resetAccountForm();
     setAccountModalOpen(true);
   }
 
@@ -140,9 +143,6 @@ export default function Accounts() {
     if (saving) return;
 
     setAccountModalOpen(false);
-    setSelectedBank(undefined);
-    setBalance("");
-    setEditingAccountId(null);
   }
 
   async function saveAccount(
@@ -248,9 +248,6 @@ export default function Accounts() {
       }
 
       setAccountModalOpen(false);
-      setSelectedBank(undefined);
-      setBalance("");
-      setEditingAccountId(null);
     } catch (error) {
       console.error("Erro ao salvar conta:", error);
 
@@ -266,6 +263,7 @@ export default function Accounts() {
 
   function requestDeleteAccount(account: Account) {
     setAccountToDelete(account);
+    setConfirmModalOpen(true);
   }
 
   async function confirmDeleteAccount() {
@@ -288,11 +286,9 @@ export default function Accounts() {
         },
       );
 
-      setAccountToDelete(undefined);
+      setConfirmModalOpen(false);
     } catch (error) {
       console.error("Erro ao excluir conta:", error);
-
-      setAccountToDelete(undefined);
 
       showAlert(
         "Não foi possível excluir",
@@ -377,7 +373,7 @@ export default function Accounts() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-3">
             {accounts.map((account) => {
               const isNegative =
                 account.balance < 0;
@@ -386,11 +382,11 @@ export default function Accounts() {
                 <FinCard
                   key={account.id}
                   variant="interactive"
-                  className="group flex min-h-60 flex-col"
+                  className="group flex min-h-44 flex-col sm:min-h-56"
                 >
-                  <FinCardHeader className="flex-row items-start justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-3.5">
-                      <div className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl border border-zinc-800 bg-white p-2">
+                  <FinCardHeader className="flex-row items-start justify-between gap-3 sm:gap-4">
+                    <div className="flex min-w-0 items-center gap-3 sm:gap-3.5">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-white p-2 sm:h-13 sm:w-13 sm:rounded-2xl">
                         <img
                           src={account.image}
                           alt=""
@@ -411,7 +407,7 @@ export default function Accounts() {
                       </div>
                     </div>
 
-                    <div className="flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover:opacity-100">
+                    <div className="flex shrink-0 items-center gap-0.5 opacity-80 transition-opacity group-hover:opacity-100">
                       <button
                         type="button"
                         title="Editar conta"
@@ -421,7 +417,7 @@ export default function Accounts() {
                             account,
                           )
                         }
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600"
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-600 sm:h-9 sm:w-9"
                       >
                         <Pencil
                           size={16}
@@ -438,7 +434,7 @@ export default function Accounts() {
                             account,
                           )
                         }
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900"
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-red-950/60 hover:text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-900 sm:h-9 sm:w-9"
                       >
                         <Trash2
                           size={16}
@@ -454,7 +450,7 @@ export default function Accounts() {
                     </p>
 
                     <strong
-                      className={`mt-2 block text-2xl font-semibold tracking-tight ${
+                      className={`mt-2 block text-2xl font-semibold tracking-tight sm:text-3xl ${
                         isNegative
                           ? "text-red-400"
                           : "text-zinc-100"
@@ -475,6 +471,7 @@ export default function Accounts() {
       <FinModal
         open={accountModalOpen}
         onClose={closeAccountModal}
+        onClosed={resetAccountForm}
         size="md"
         closeOnOverlayClick={!saving}
         closeOnEscape={!saving}
@@ -506,25 +503,25 @@ export default function Accounts() {
               />
             </div>
 
-              <FinInput
-                label={
-                  editingAccountId === null
-                    ? "Saldo inicial"
-                    : "Saldo atual"
-                }
-                type="text"
-                inputMode="decimal"
-                placeholder="0,00"
-                value={balance}
-                onChange={(event) =>
-                  setBalance(event.target.value)
-                }
-                helperText={
-                  editingAccountId === null
-                    ? "Use vírgula para informar os centavos."
-                    : "Caso o saldo seja alterado, o FinControl registrará automaticamente um ajuste no histórico."
-                }
-              />
+            <FinInput
+              label={
+                editingAccountId === null
+                  ? "Saldo inicial"
+                  : "Saldo atual"
+              }
+              type="text"
+              inputMode="decimal"
+              placeholder="0,00"
+              value={balance}
+              onChange={(event) =>
+                setBalance(event.target.value)
+              }
+              helperText={
+                editingAccountId === null
+                  ? "Use vírgula para informar os centavos."
+                  : "Caso o saldo seja alterado, o FinControl registrará automaticamente um ajuste no histórico."
+              }
+            />
           </FinModalContent>
 
           <FinModalFooter>
@@ -550,7 +547,7 @@ export default function Accounts() {
       </FinModal>
 
       <ConfirmModal
-        open={Boolean(accountToDelete)}
+        open={confirmModalOpen}
         title="Excluir conta e movimentações"
         message={`Tem certeza de que deseja excluir a conta ${
           accountToDelete?.name ?? ""
@@ -559,11 +556,14 @@ export default function Accounts() {
         onConfirm={confirmDeleteAccount}
         onCancel={() => {
           if (!saving) {
-            setAccountToDelete(undefined);
+            setConfirmModalOpen(false);
           }
         }}
+        onClosed={() => {
+          setAccountToDelete(undefined);
+        }}
       />
-      
+
       <AlertModal
         open={alertOpen}
         title={alert?.title ?? ""}
