@@ -527,7 +527,7 @@ const FinModalContent = forwardRef<
     <div
       ref={ref}
       className={[
-        "max-h-[70vh] overflow-y-auto px-5 py-5 sm:px-6",
+        "fin-scrollbar max-h-[78vh] overflow-y-auto px-5 py-5 sm:px-6",
         className,
       ]
         .filter(Boolean)

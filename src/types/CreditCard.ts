@@ -2,9 +2,9 @@ export type CreditCardBrand =
   | "Visa"
   | "Mastercard"
   | "Elo"
-  | "American Express"
+  | "American-Express"
   | "Hipercard"
-  | "Outro";
+  | "Other";
 
 export interface CreditCard {
   id: number;
